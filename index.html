@@ -1,170 +1,1518 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BIZ Level Up Dashboard | Live Performance</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BIZ Level Up Dashboard | Live Performance</title>
 
-  <!-- ═══ EXTERNAL CDN (never change) ═══ -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
+    <!-- CDN Dependencies -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 
-  <!-- ═══ FIREBASE SDK (loaded once here, used by all JS files) ═══ -->
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <!-- Firebase Compat SDK (replaces the ES module import in the original) -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
-  <!-- ═══════════════════════════════════════════════════════════
-       CSS FILES — each file owns one section of the site.
-       To edit styles for a section, open that CSS file only.
-  ═══════════════════════════════════════════════════════════ -->
-
-  <!-- 1. Shared styles: body, fonts, glass, tiers, tabs, lookup,
-          playbook, rebuttals, modal base, media queries -->
-  <link rel="stylesheet" href="css/globals.css" />
-
-  <!-- 2. Login screen only: card, rings, waveform, inputs, buttons,
-          success overlay, ticker -->
-  <link rel="stylesheet" href="css/login.css" />
-
-  <!-- 3. Trivia view only: neon vars, question bubble, option buttons,
-          countdown ring, T/F, streaks, confetti -->
-  <link rel="stylesheet" href="css/trivia.css" />
-
-  <!-- 4. Popups & banners: top performer modal, agent info banner,
-          lead alert banner -->
-  <link rel="stylesheet" href="css/modals.css" />
-
-  <!-- 5. Broadcast: alert bar, admin float panel, bc-login-modal -->
-  <link rel="stylesheet" href="css/broadcast.css" />
-
-  <!-- 6. Who's Online view: Nadia admin panel, user cards, stat pills -->
-  <link rel="stylesheet" href="css/online.css" />
+    <!-- CSS — edit each file independently -->
+    <link rel="stylesheet" href="css/globals.css">
+    <link rel="stylesheet" href="css/login.css">
+    <link rel="stylesheet" href="css/trivia.css">
+    <link rel="stylesheet" href="css/modals.css">
+    <link rel="stylesheet" href="css/broadcast.css">
+    <link rel="stylesheet" href="css/online.css">
 </head>
-
 <body class="p-4 pb-20">
 
-<!-- ═══════════════════════════════════════════════════════════
-     LAYOUT NOTE:
-     Each section below is a placeholder <div>.
-     loader.js fetches the matching html/ partial and injects it here.
-     To edit a section's HTML → open its html/ file.
-     To edit a section's JS   → open its js/ file.
-     To edit a section's CSS  → open its css/ file.
-     index.html itself rarely needs to change.
-═══════════════════════════════════════════════════════════ -->
+<!-- ===== LOGIN SCREEN ===== -->
+<div id="login-cursor"></div>
+<div id="login-cursor-dot"></div>
 
-<!-- ── FIXED/FLOATING LAYERS (rendered above everything) ── -->
+<div id="login-screen">
+  <!-- Canvas for particle network + mouse parallax -->
+  <canvas id="login-canvas"></canvas>
 
-<!-- Broadcast alert bar — Edit: html/broadcast-bar.html | js/broadcast.js | css/broadcast.css -->
-<div id="part-broadcast-bar"></div>
+  <!-- Holographic rings -->
+  <div class="holo-ring holo-ring-1"></div>
+  <div class="holo-ring holo-ring-2"></div>
+  <div class="holo-ring holo-ring-3"></div>
+  <div class="holo-ring holo-ring-4"></div>
 
-<!-- Lead alert banner — Edit: html/lead-alert.html | js/firebase-bridge.js | css/modals.css -->
-<div id="part-lead-alert"></div>
+  <!-- Floating giant headset behind everything -->
+  <div id="floating-headset-wrap">
+    <span id="floating-headset">🎧</span>
+  </div>
 
-<!-- Login screen — Edit: html/login.html | js/login.js | css/login.css -->
-<div id="part-login"></div>
+  <!-- Scanlines overlay -->
+  <div class="login-scanline"></div>
+
+  <!-- Corner brackets (HUD style) -->
+  <div class="corner corner-tl"></div>
+  <div class="corner corner-tr"></div>
+  <div class="corner corner-bl"></div>
+  <div class="corner corner-br"></div>
+
+  <!-- Scrolling ticker at bottom -->
+  <div id="login-status-ticker">
+    <span>⚡ BIZ Level Up · Call Center Performance Hub · Clock In to Access Your Dashboard · Live Leaderboard · Real-Time Tracking · ⚡ BIZ Level Up · Clock In Below · Attendance Logged Automatically ·&nbsp;</span>
+  </div>
+
+  <!-- THE CARD -->
+  <div class="login-card">
+    <div class="card-scan-h"></div>
+    <div class="card-scan-v"></div>
+
+    <!-- Logo -->
+    <div class="login-logo-wrap">
+      <div class="login-logo">BIZ Level Up</div>
+    </div>
+    <div class="login-sub">Call Center Performance Hub</div>
+
+    <!-- Waveform -->
+    <div class="login-wave-wrap">
+      <div class="waveform" id="login-waveform"></div>
+      <div class="live-dot-row">
+        <div class="live-dot-login"></div>
+        <span id="login-clock-display">Live · --:-- --</span>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="login-tabs">
+      <button class="login-tab active" id="tab-agent" onclick="setLoginMode('agent')">🎧 Agent Login</button>
+      <button class="login-tab" id="tab-admin" onclick="setLoginMode('admin')">🔐 Admin</button>
+    </div>
+
+    <!-- AGENT FORM -->
+    <div id="agent-form">
+      <div class="login-input-wrap">
+        <input id="agent-ytel-input" type="text" class="login-input"
+          placeholder="Enter Ytel ID  (e.g. REO123)"
+          autocomplete="off" autocapitalize="characters"
+          onkeydown="if(event.key==='Enter')attemptAgentLogin()"
+          oninput="this.value=this.value.toUpperCase()" />
+        <div class="input-glow-line"></div>
+      </div>
+      <div id="agent-error" class="login-error"></div>
+      <button class="login-btn" onclick="attemptAgentLogin()">
+        ⚡ &nbsp;Clock In &amp; Enter Dashboard
+      </button>
+    </div>
+
+    <!-- ADMIN FORM -->
+    <div id="admin-form" style="display:none;">
+      <div class="login-input-wrap">
+        <input id="admin-name-input" type="text" class="login-input"
+          placeholder="Admin Name"
+          autocomplete="off"
+          onkeydown="if(event.key==='Enter')document.getElementById('admin-pass-input').focus()" />
+        <div class="input-glow-line"></div>
+      </div>
+      <div class="login-input-wrap" style="margin-top:8px;">
+        <input id="admin-pass-input" type="password" class="login-input"
+          placeholder="Password"
+          autocomplete="off"
+          onkeydown="if(event.key==='Enter')attemptAdminLogin()" />
+        <div class="input-glow-line"></div>
+      </div>
+      <div id="admin-error" class="login-error"></div>
+      <button class="login-btn login-btn-admin" onclick="attemptAdminLogin()">
+        🛡️ &nbsp;Admin Access
+      </button>
+    </div>
+
+    <!-- Success overlay -->
+    <div class="login-success-overlay" id="login-success">
+      <div class="success-rings">
+        <div class="success-ring success-ring-1"></div>
+        <div class="success-ring success-ring-2"></div>
+        <div class="success-ring success-ring-3"></div>
+        <div class="success-check" id="success-check-icon">✅</div>
+      </div>
+      <div class="success-name" id="success-name-text"></div>
+      <div class="success-msg" id="success-msg-text">Attendance Marked</div>
+      <div class="attendance-badge" id="attendance-badge-text">✓ Clocked In Successfully</div>
+      <div class="success-loading-bar"><div class="success-loading-fill" id="success-loading-fill"></div></div>
+    </div>
+  </div>
+</div>
 
 
-<!-- ── MAIN APP (shown after login) ── -->
-<div id="main-app" style="display:none;">
+<!-- ===== BROADCAST ALERT BAR ===== -->
+<div id="broadcast-bar">
+  <div class="bc-inner">
+    <span class="bc-icon">📢</span>
+    <div class="bc-text" id="bc-message-text">Admin message here</div>
+    <button class="bc-close" onclick="dismissBroadcast()" title="Close">✕</button>
+  </div>
+</div>
 
-  <!-- Agent info sticky banner — Edit: html/agent-banner.html | js/agent-banner.js | css/modals.css -->
-  <div id="part-agent-banner"></div>
+<!-- ===== AGENT INFO BANNER ===== -->
+<div id="agent-info-banner">
+  <div class="aib-inner">
+    <div class="aib-avatar">🎧</div>
+    <div class="aib-info">
+      <div class="aib-name" id="aib-name">Agent</div>
+      <div class="aib-role" id="aib-role">Agent · PR Team</div>
+    </div>
+    <div class="aib-divider"></div>
+    <span class="aib-presence-badge present" id="aib-presence-badge">
+      <span class="aib-presence-dot"></span>
+      <span id="aib-presence-label">Present</span>
+    </span>
+    <!-- Inline perf stats -->
+    <div class="aib-perf-row" id="aib-perf-row" style="display:none;">
+      <div class="aib-divider" style="margin:0 2px;"></div>
+      <div class="aib-perf-stat">
+        <span class="aib-perf-lbl">Today</span>
+        <span class="aib-perf-val" id="aib-perf-daily">—</span>
+      </div>
+      <div class="aib-perf-divider"></div>
+      <div class="aib-perf-stat">
+        <span class="aib-perf-lbl">Wk Lead</span>
+        <span class="aib-perf-val" id="aib-perf-weekly">—</span>
+      </div>
+      <div class="aib-perf-divider"></div>
+      <div class="aib-perf-stat">
+        <span class="aib-perf-lbl">Shift</span>
+        <span class="aib-perf-val" id="aib-perf-shift" style="color:#facc15;">—</span>
+      </div>
+      <div class="aib-perf-divider"></div>
+      <div class="aib-perf-stat">
+        <span class="aib-perf-lbl">Lunch</span>
+        <span class="aib-perf-val" id="aib-perf-lunch" style="color:#4ade80;">—</span>
+      </div>
+    </div>
+    <div id="aib-rows" style="display:none;"></div>
+    <div class="aib-attendance-badge">
+      <div class="aib-clocked" id="aib-clocked-badge">✓ Present</div>
+      <div class="aib-clock-time" id="aib-clock-time"></div>
+    </div>
+  </div>
+</div>
 
-  <!-- Nav tab bar — Edit: html/nav.html | js/nav.js -->
-  <div id="part-nav"></div>
+<!-- ===== LEAD ALERT: TOP BANNER ===== -->
+<div id="lead-alert-banner">
+  <div class="lab-inner">
+    <span class="lab-icon">🔥</span>
+    <div class="lab-text" id="lab-text"></div>
+    <button class="lab-close" onclick="dismissLeadAlert()" title="Close">✕</button>
+  </div>
+</div>
 
-  <!-- ── SCROLLABLE CONTENT AREA ── -->
-  <div class="main-container mx-auto px-3 pb-20" style="max-width:680px;">
+<!-- ===== ADMIN BROADCAST BUTTON (hidden until unlocked) ===== -->
+<button id="bc-admin-btn" class="hidden" onclick="toggleBcPanel()" title="Broadcast Admin">📣</button>
 
-    <!-- LEADERBOARD — Edit: html/views/leaderboard.html | js/leaderboard.js -->
+<!-- ===== FLOATING ADMIN CHAT BUBBLE ===== -->
+<button id="bc-float-btn" onclick="toggleBcPanel()" title="Admin Panel">📣</button>
+
+<!-- ===== ADMIN BROADCAST PANEL ===== -->
+<div id="bc-panel">
+  <div class="bc-panel-title"><span>📢</span> Admin Broadcast</div>
+  <textarea id="bc-input" class="bc-msg-input" rows="3" placeholder="Type your message to everyone..."></textarea>
+  <button class="bc-send-btn" onclick="sendBroadcast()">⚡ Send to Everyone</button>
+  <button class="bc-clear-btn" onclick="clearBroadcast()">🗑 Clear Message</button>
+  <button class="bc-clear-btn" onclick="dismissLeadAlert()" style="margin-top:4px;color:#c084fc;border-color:rgba(168,85,247,0.3);">🔥 Clear Lead Alert</button>
+
+  <div id="bc-status" class="bc-status"></div>
+</div>
+
+<!-- ===== ADMIN LOGIN MODAL FOR BROADCAST ===== -->
+<div id="bc-login-modal" class="hidden">
+  <div class="modal-box">
+    <div class="header-font text-xs text-red-500 tracking-widest uppercase mb-2 italic">📢 Admin Access</div>
+    <div class="header-font text-2xl font-black text-white uppercase italic tracking-tight">Broadcast</div>
+    <p class="text-slate-400 text-sm mt-3">Enter admin password to send broadcasts.</p>
+    <input id="bc-pw-input" type="password" class="pw-input" placeholder="••••••••" onkeydown="if(event.key==='Enter')checkBcPassword()" autocomplete="off"/>
+    <div id="bc-pw-error" class="error-msg"></div>
+    <button class="pw-btn" onclick="checkBcPassword()"><i class="fas fa-broadcast-tower mr-2"></i>Unlock</button><br>
+    <button class="pw-cancel" onclick="document.getElementById('bc-login-modal').classList.add('hidden')">Cancel</button>
+  </div>
+</div>
+
+<!-- ===== TOP PERFORMER POPUP ===== -->
+<canvas id="tp-confetti-canvas"></canvas>
+<div id="top-performer-modal" class="hidden">
+  <div class="tp-box">
+    <div class="tp-header">
+      <span class="tp-crown">👑</span>
+      <div class="tp-title">Top Performers</div>
+      <div class="tp-subtitle" id="tp-time-label">Last 2 Hours</div>
+    </div>
+    <div class="tp-list" id="tp-list"></div>
+    <div class="tp-footer">
+      <button class="tp-close-btn" onclick="closeTopPerformer()">✕ Close</button>
+    </div>
+  </div>
+</div>
+
+<div id="pw-modal" class="modal-overlay hidden">
+    <div class="modal-box">
+        <div class="header-font text-xs text-yellow-500 tracking-widest uppercase mb-2 italic">Access Required</div>
+        <div class="header-font text-2xl font-black text-white uppercase italic tracking-tight">Weekly Rankings</div>
+        <p class="text-slate-400 text-sm mt-3">Enter your access code to view the weekly leaderboard.</p>
+        <input id="pw-input" type="password" class="pw-input" placeholder="••••••••" onkeydown="if(event.key==='Enter')checkPassword()" autocomplete="off"/>
+        <div id="pw-error" class="error-msg"></div>
+        <button class="pw-btn" onclick="checkPassword()"><i class="fas fa-unlock mr-2"></i>Unlock</button><br>
+        <button class="pw-cancel" onclick="cancelPassword()">Cancel</button>
+    </div>
+</div>
+
+<div class="main-container max-w-lg mx-auto transition-all duration-500">
+
+    <div class="flex justify-between items-center mb-8 px-2">
+        <div class="flex items-center gap-3">
+            <span class="live-pulse"></span>
+            <div class="flex flex-col">
+                <span class="text-[10px] md:text-xs font-black tracking-widest text-red-500 uppercase italic leading-none">Live System Performance</span>
+                <span id="timestamp" class="text-[8px] md:text-sm text-slate-500 font-bold uppercase mt-1">Syncing Data...</span>
+            </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <button onclick="updateDashboard()" id="refresh-btn" class="glass p-3 px-4 rounded-xl hover:bg-white/10 transition-all active:scale-95">
+              <i class="fas fa-sync-alt text-sm text-blue-400"></i>
+          </button>
+          <button id="logout-btn" onclick="logoutUser()" title="Log Out">
+            <i class="fas fa-sign-out-alt" style="font-size:12px;"></i>
+            <span>Log Out</span>
+          </button>
+        </div>
+    </div>
+
+    <div class="text-center mb-10">
+        <h1 class="header-font text-4xl md:text-6xl font-black tracking-tighter bg-gradient-to-r from-yellow-400 via-orange-500 to-red-600 bg-clip-text text-transparent italic leading-tight uppercase" id="main-title" onclick="handleTitleTap()" style="cursor:default;user-select:none;">BIZ Level Up Dashboard</h1>
+        <div style="display:flex;justify-content:center;gap:16px;margin-top:12px;flex-wrap:wrap;">
+            <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:8px 18px;display:flex;align-items:center;gap:10px;">
+                <span style="font-size:1.2rem;">🇬🇾</span>
+                <div>
+                    <div style="font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.12em;color:#64748b;">Guyana</div>
+                    <div id="clock-guyana" style="font-family:'Inter',sans-serif;font-size:20px;font-weight:900;color:#facc15;letter-spacing:0.02em;">--:-- --</div>
+                </div>
+            </div>
+            <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:8px 18px;display:flex;align-items:center;gap:10px;">
+                <span style="font-size:1.2rem;">🇺🇸</span>
+                <div>
+                    <div style="font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.12em;color:#64748b;">California</div>
+                    <div id="clock-california" style="font-family:'Inter',sans-serif;font-size:20px;font-weight:900;color:#38bdf8;letter-spacing:0.02em;">--:-- --</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px;padding:0 8px;max-width:42rem;margin-left:auto;margin-right:auto;">
+        <button onclick="switchTab('daily')"     id="tab-daily"     class="glass py-3 rounded-xl text-[10px] md:text-sm font-black uppercase tracking-widest transition-all tab-active">Daily</button>
+        <button onclick="switchTab('lookup')"    id="tab-lookup"    class="glass py-3 rounded-xl text-[10px] md:text-sm font-black uppercase tracking-widest transition-all text-slate-500"><i class="fas fa-search text-[9px] mr-1 opacity-60"></i>Lookup</button>
+        <button onclick="switchTab('playbook')"  id="tab-playbook"  class="glass py-3 rounded-xl text-[10px] md:text-sm font-black uppercase tracking-widest transition-all text-slate-500">Playbook</button>
+        <button onclick="switchTab('rebuttals')" id="tab-rebuttals" class="glass py-3 rounded-xl text-[10px] md:text-sm font-black uppercase tracking-widest transition-all text-slate-500" style="color:#14b8a6;border-color:rgba(20,184,166,0.3);">💬 Rebuttals</button>
+        <button onclick="switchTab('prank')"     id="tab-prank"     class="glass py-3 rounded-xl text-[10px] md:text-sm font-black uppercase tracking-widest transition-all text-slate-500" style="color:#a855f7;">🚨 Prank</button>
+        <button onclick="requestWeekly()"        id="tab-weekly"    class="glass py-3 rounded-xl text-[10px] md:text-sm font-black uppercase tracking-widest transition-all text-slate-500"><i class="fas fa-lock text-[9px] mr-1 opacity-60"></i>Weekly</button>
+        <button onclick="switchTab('trivia')"    id="tab-trivia"    class="glass py-3 rounded-xl text-[10px] md:text-sm font-black uppercase tracking-widest transition-all text-slate-500" style="color:#f59e0b;border-color:rgba(245,158,11,0.3);grid-column:1/-1;">🎯 Trivia Blitz</button>
+        <button onclick="switchTab('online')"    id="tab-online"    class="glass py-3 rounded-xl text-[10px] md:text-sm font-black uppercase tracking-widest transition-all text-slate-500" style="color:#8b5cf6;border-color:rgba(139,92,246,0.35);grid-column:1/-1;display:none;">👁 Who's Online</button>
+    </div>
+    <!-- Monthly Tabs Row — auto-generated based on current month -->
+    <div id="monthly-tabs-row" style="display:none;gap:6px;flex-wrap:wrap;padding:0 8px;margin-bottom:8px;max-width:42rem;margin-left:auto;margin-right:auto;"></div>
+
+    <div id="day-sub-tabs-wrapper" class="hidden px-2 mb-5 max-w-2xl mx-auto">
+        <div id="day-sub-tabs-container"></div>
+    </div>
+
+    <!-- LEADERBOARD -->
     <div id="leaderboard-view">
-      <div id="part-leaderboard"></div>
+        <div id="history-banner" class="hidden mx-2 mb-4">
+            <div class="history-banner"><i class="fas fa-history mr-2"></i><span id="history-banner-text"></span></div>
+        </div>
+        <div class="mb-10 px-2 max-w-3xl mx-auto">
+            <div class="flex justify-between items-end mb-3">
+                <span id="goal-label" class="text-xs md:text-sm font-black text-yellow-500 uppercase italic tracking-widest">Daily Team Goal</span>
+                <span id="goal-percent" class="text-xs md:text-sm font-black text-white uppercase italic">0%</span>
+            </div>
+            <div class="w-full h-6 bg-white/5 rounded-full overflow-hidden border border-white/10 p-[3px]">
+                <div id="progress-bar" class="gold-progress h-full rounded-full transition-all duration-1000" style="width:0%"></div>
+            </div>
+            <div class="flex justify-between mt-2 px-1">
+                <span id="current-leads-sum" class="text-xs font-bold text-slate-400">0 Leads</span>
+                <span id="target-display" class="text-xs font-bold text-slate-400">Target: 120</span>
+            </div>
+        </div>
+        <div class="grid grid-cols-4 gap-2 mb-10 px-2">
+            <div class="glass p-3 md:p-8 rounded-3xl border-b-4 border-b-yellow-500 text-center stat-card">
+                <div class="text-[9px] md:text-sm font-black text-yellow-500 uppercase mb-2 leading-tight">12+ Proof</div>
+                <div id="master-count" class="text-2xl md:text-6xl font-black text-white stat-value">00</div>
+            </div>
+            <div class="glass p-3 md:p-8 rounded-3xl border-b-4 border-b-green-500 text-center stat-card">
+                <div class="text-[9px] md:text-sm font-black text-green-500 uppercase mb-2 leading-tight">Active Reps</div>
+                <div id="active-reps" class="text-2xl md:text-6xl font-black text-white stat-value">0</div>
+            </div>
+            <div class="glass p-3 md:p-8 rounded-3xl border-b-4 border-b-blue-500 text-center stat-card">
+                <div class="text-[9px] md:text-sm font-black text-blue-500 uppercase mb-2 leading-tight">Floor Total</div>
+                <div id="floor-total" class="text-2xl md:text-6xl font-black text-white stat-value">0</div>
+            </div>
+            <div class="prbb-card p-3 md:p-8 rounded-3xl text-center stat-card">
+                <div class="text-[9px] md:text-sm font-black text-purple-400 uppercase mb-2 leading-tight">PR / BB</div>
+                <div class="flex items-stretch justify-center gap-2">
+                    <div class="flex-1 flex flex-col items-center">
+                        <div class="text-[8px] font-black text-slate-500 uppercase tracking-wider mb-1">Prov</div>
+                        <div id="pr-count" class="text-xl md:text-4xl font-black leading-none" style="color:#a78bfa">0</div>
+                    </div>
+                    <div class="prbb-divider"></div>
+                    <div class="flex-1 flex flex-col items-center">
+                        <div class="text-[8px] font-black text-slate-500 uppercase tracking-wider mb-1">Berb</div>
+                        <div id="bb-count" class="text-xl md:text-4xl font-black leading-none" style="color:#c084fc">0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="flex justify-between items-end mb-6 px-4">
+            <h2 id="ranking-title" class="header-font text-xs md:text-lg font-black tracking-widest text-slate-500 uppercase italic">Live Rankings</h2>
+            <div id="day-indicator" class="text-xs md:text-sm text-blue-500 font-bold uppercase italic">Updating...</div>
+        </div>
+        <div id="leaderboard" class="leaderboard-grid space-y-3 md:space-y-0 px-2"></div>
     </div>
 
-    <!-- LOOKUP — Edit: html/views/lookup.html | js/lookup.js -->
-    <div id="lookup-view" style="display:none;">
-      <div id="part-lookup"></div>
+    <!-- LOOKUP -->
+    <div id="lookup-view" class="hidden px-2 pb-20 space-y-5">
+        <div class="glass p-6 rounded-3xl border-t-4 border-t-blue-500">
+            <div class="flex items-center gap-3 mb-3">
+                <div class="w-9 h-9 rounded-xl flex items-center justify-center" style="background:rgba(59,130,246,0.15);border:1px solid rgba(59,130,246,0.3);">
+                    <i class="fab fa-google text-blue-400 text-sm"></i>
+                </div>
+                <div>
+                    <div class="header-font text-xs text-blue-500 uppercase tracking-widest italic">Business Intelligence</div>
+                    <div class="header-font text-lg font-black text-white uppercase italic">Lead Lookup</div>
+                </div>
+            </div>
+            <p class="text-slate-500 text-xs mb-5 leading-relaxed">
+                Type a phone number or business name — opens <strong class="text-white">Google AI</strong> in a new tab asking for the business name, owner, address, and email.
+            </p>
+            <div class="space-y-3">
+                <input id="lookup-input" type="text" class="lookup-input"
+                    placeholder="e.g. (716) 771-6522 or Business Name..."
+                    onkeydown="if(event.key==='Enter')runLookup()"
+                    oninput="onLookupInput(this.value)"
+                    autocomplete="off"/>
+                <button onclick="runLookup()" class="lookup-btn">
+                    <i class="fab fa-google mr-2"></i>Open Google AI — Search Now
+                </button>
+                <button onclick="logPrankCall()" id="log-prank-btn" style="width:100%;padding:16px;border-radius:14px;font-family:'Orbitron',sans-serif;font-weight:900;font-size:0.78rem;letter-spacing:0.14em;text-transform:uppercase;background:linear-gradient(90deg,#7c1d1d,#991b1b,#b91c1c);color:white;border:2px solid rgba(239,68,68,0.5);cursor:pointer;transition:opacity 0.2s,transform 0.1s;box-shadow:0 0 20px rgba(239,68,68,0.25);display:flex;align-items:center;justify-content:center;gap:8px;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'" onmousedown="this.style.transform='scale(0.97)'" onmouseup="this.style.transform='scale(1)'">
+                    <i class="fas fa-ban"></i>Log Prank Call &#8594; Sheet
+                </button>
+                <button onclick="clearLookup()" style="width:100%;background:none;border:none;color:#334155;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;cursor:pointer;padding:4px;" onmouseover="this.style.color='#64748b'" onmouseout="this.style.color='#334155'">
+                    <i class="fas fa-times" style="margin-right:4px;"></i>Clear
+                </button>
+                <div id="prank-log-status" style="display:none;border-radius:10px;padding:10px 14px;font-family:'Orbitron',sans-serif;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;text-align:center;"></div>
+            </div>
+        </div>
+        <div id="lookup-prank-result" class="hidden"></div>
+        <div id="lookup-history-section" class="hidden">
+            <div class="flex justify-between items-center mb-3 px-1">
+                <span class="text-[10px] font-black text-slate-600 uppercase tracking-widest">Recent Lookups</span>
+                <button onclick="clearHistory()" class="text-[10px] font-black text-slate-700 hover:text-red-500 uppercase tracking-widest transition-colors">Clear All</button>
+            </div>
+            <div id="lookup-history" class="space-y-2"></div>
+        </div>
     </div>
 
-    <!-- PLAYBOOK — Edit: html/views/playbook.html | js/playbook.js -->
-    <div id="playbook-view" style="display:none;">
-      <div id="part-playbook"></div>
+    <!-- PLAYBOOK -->
+    <div id="playbook-view" class="hidden space-y-6 px-2 pb-20">
+        <div class="glass p-6 rounded-3xl border-l-8 border-l-green-500 bg-green-500/5">
+            <h3 class="header-font text-sm md:text-xl font-black text-green-500 uppercase mb-4 italic">Quality Guidelines</h3>
+            <div class="text-sm md:text-lg leading-relaxed text-slate-200 space-y-3">
+                <p>1. Need to be in business for over 1 Year</p>
+                <p>2. Primary Owner of the business 100% or at least 50%</p>
+                <p>3. <span class="text-red-400 font-black">No</span> Trucking Companies &nbsp;·&nbsp; <span class="text-red-400 font-black">No</span> Van &nbsp;·&nbsp; <span class="text-red-400 font-black">No</span> Attorneys / Lawyers &nbsp;·&nbsp; <span class="text-red-400 font-black">No</span> Detachable Tractor</p>
+                <div style="margin-top:8px;border-radius:14px;overflow:hidden;border:1px solid rgba(34,197,94,0.3);">
+                    <div onclick="toggleRevenueDropdown()" style="background:rgba(34,197,94,0.1);padding:12px 16px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;user-select:none;transition:background 0.2s;" onmouseover="this.style.background='rgba(34,197,94,0.16)'" onmouseout="this.style.background='rgba(34,197,94,0.1)'">
+                        <div style="display:flex;align-items:center;gap:10px;">
+                            <span style="font-size:1rem;">💰</span>
+                            <div>
+                                <div style="font-family:Orbitron,sans-serif;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;color:#22c55e;">4. Last Year Revenue</div>
+                                <div style="font-size:11px;font-weight:700;color:#94a3b8;margin-top:1px;">Tap to see how to ask &amp; what qualifies</div>
+                            </div>
+                        </div>
+                        <i id="revenue-arrow" class="fas fa-chevron-down" style="color:#22c55e;font-size:12px;transition:transform 0.3s;"></i>
+                    </div>
+                    <div id="revenue-body" style="max-height:0;overflow:hidden;transition:max-height 0.5s ease;">
+                        <div style="background:rgba(2,6,23,0.6);padding:16px;display:flex;flex-direction:column;gap:12px;">
+                            <div style="background:rgba(34,197,94,0.07);border:1px solid rgba(34,197,94,0.2);border-radius:10px;padding:12px 14px;display:flex;align-items:flex-start;gap:10px;">
+                                <i class="fas fa-info-circle" style="color:#22c55e;flex-shrink:0;margin-top:2px;font-size:14px;"></i>
+                                <div>
+                                    <p style="font-size:12px;font-weight:900;text-transform:uppercase;color:#22c55e;letter-spacing:0.08em;margin-bottom:4px;">What You're Asking For</p>
+                                    <p style="font-size:14px;font-weight:600;color:#cbd5e1;line-height:1.6;">You need their <strong style="color:white;">2025 gross annual revenue</strong> — that's the total the business brought in before any taxes, deductions, or expenses. Not what they kept. The full top-line number.</p>
+                                </div>
+                            </div>
+                            <div style="border-radius:12px;overflow:hidden;border:1px solid rgba(255,255,255,0.08);">
+                                <div style="background:rgba(255,255,255,0.04);padding:10px 14px;border-bottom:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;gap:8px;">
+                                    <span style="background:rgba(59,130,246,0.25);color:#60a5fa;font-size:11px;font-weight:900;border-radius:20px;padding:2px 9px;letter-spacing:0.07em;">STEP A</span>
+                                    <p style="font-size:14px;font-weight:700;color:white;font-style:italic;">"Does your business generate at least $1 million a year in revenue?"</p>
+                                </div>
+                                <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;">
+                                    <div style="background:rgba(34,197,94,0.07);padding:12px 14px;border-right:1px solid rgba(255,255,255,0.07);">
+                                        <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;"><span style="background:rgba(34,197,94,0.25);color:#4ade80;font-size:11px;font-weight:900;border-radius:20px;padding:2px 8px;">YES</span></div>
+                                        <p style="font-size:13px;font-weight:700;color:#86efac;font-style:italic;line-height:1.5;">"Can you please provide a rough estimate of how much?"</p>
+                                        <div style="margin-top:8px;background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.3);border-radius:8px;padding:8px 10px;text-align:center;">
+                                            <p style="font-size:12px;font-weight:900;text-transform:uppercase;color:#22c55e;">✓ QUALIFIED</p>
+                                            <p style="font-size:12px;font-weight:700;color:#86efac;margin-top:2px;">Transfer — Over $1M Line</p>
+                                        </div>
+                                    </div>
+                                    <div style="background:rgba(239,68,68,0.05);padding:12px 14px;">
+                                        <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;"><span style="background:rgba(239,68,68,0.2);color:#f87171;font-size:11px;font-weight:900;border-radius:20px;padding:2px 8px;">NO</span></div>
+                                        <p style="font-size:13px;font-weight:700;color:#fca5a5;line-height:1.5;">No problem — continue to <strong style="color:white;">Step B</strong> below.</p>
+                                        <div style="margin-top:8px;display:flex;align-items:center;gap:6px;"><i class="fas fa-arrow-down" style="color:#475569;font-size:12px;"></i><p style="font-size:12px;font-weight:900;text-transform:uppercase;color:#475569;">Move to next question</p></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="border-radius:12px;overflow:hidden;border:1px solid rgba(255,255,255,0.08);">
+                                <div style="background:rgba(255,255,255,0.04);padding:10px 14px;border-bottom:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;gap:8px;">
+                                    <span style="background:rgba(234,179,8,0.25);color:#facc15;font-size:11px;font-weight:900;border-radius:20px;padding:2px 9px;letter-spacing:0.07em;">STEP B</span>
+                                    <p style="font-size:14px;font-weight:700;color:white;font-style:italic;">"Does your business generate at least $200K in revenue per year?"</p>
+                                </div>
+                                <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;">
+                                    <div style="background:rgba(34,197,94,0.07);padding:12px 14px;border-right:1px solid rgba(255,255,255,0.07);">
+                                        <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;"><span style="background:rgba(34,197,94,0.25);color:#4ade80;font-size:11px;font-weight:900;border-radius:20px;padding:2px 8px;">YES</span></div>
+                                        <p style="font-size:13px;font-weight:700;color:#86efac;font-style:italic;line-height:1.5;">"Can you please provide a rough estimate of how much?"</p>
+                                        <div style="margin-top:8px;background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.3);border-radius:8px;padding:8px 10px;text-align:center;">
+                                            <p style="font-size:12px;font-weight:900;text-transform:uppercase;color:#22c55e;">✓ QUALIFIED</p>
+                                            <p style="font-size:12px;font-weight:700;color:#86efac;margin-top:2px;">Transfer — Under $1M Line</p>
+                                        </div>
+                                    </div>
+                                    <div style="background:rgba(239,68,68,0.05);padding:12px 14px;">
+                                        <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;"><span style="background:rgba(239,68,68,0.2);color:#f87171;font-size:11px;font-weight:900;border-radius:20px;padding:2px 8px;">NO</span></div>
+                                        <p style="font-size:13px;font-weight:700;color:#fca5a5;line-height:1.5;">Revenue is below minimum. <strong style="color:white;">Does not qualify.</strong></p>
+                                        <div style="margin-top:8px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.25);border-radius:6px;padding:6px 10px;text-align:center;">
+                                            <p style="font-size:12px;font-weight:900;text-transform:uppercase;color:#ef4444;">✗ DNQ — End Call</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="border-top:1px solid rgba(255,255,255,0.06);padding-top:12px;">
+                                <p style="font-size:12px;font-weight:900;text-transform:uppercase;color:#64748b;letter-spacing:0.08em;margin-bottom:8px;">If They're Unsure of Their Annual Number</p>
+                                <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:10px 13px;display:flex;align-items:flex-start;gap:8px;">
+                                    <span style="background:rgba(234,179,8,0.2);color:#facc15;font-size:11px;font-weight:900;border-radius:4px;padding:2px 6px;flex-shrink:0;margin-top:1px;">IF UNSURE</span>
+                                    <div>
+                                        <p style="font-size:14px;font-weight:700;color:white;font-style:italic;">"No problem — roughly how much does the business bring in each month?"</p>
+                                        <p style="font-size:12px;color:#64748b;margin-top:3px;">Multiply their monthly number by 12 to get an annual estimate.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="background:rgba(249,115,22,0.08);border:1px solid rgba(249,115,22,0.3);border-radius:10px;padding:12px 14px;display:flex;align-items:flex-start;gap:10px;">
+                                <i class="fas fa-exclamation-triangle" style="color:#f97316;flex-shrink:0;margin-top:2px;font-size:13px;"></i>
+                                <div>
+                                    <p style="font-size:12px;font-weight:900;text-transform:uppercase;color:#f97316;letter-spacing:0.08em;margin-bottom:5px;">⚠️ If They Say "It Should Be Around the Same as Last Year"</p>
+                                    <p style="font-size:14px;font-weight:600;color:#fed7aa;line-height:1.6;">Do <strong style="color:white;">not</strong> accept this. You need the actual 2025 number, not an assumption based on a prior year.</p>
+                                    <div style="background:rgba(249,115,22,0.1);border:1px solid rgba(249,115,22,0.2);border-radius:8px;padding:9px 12px;margin-top:10px;">
+                                        <p style="font-size:12px;font-weight:900;text-transform:uppercase;color:#f97316;margin-bottom:5px;">Push Back With:</p>
+                                        <p style="font-size:14px;font-weight:700;color:white;font-style:italic;line-height:1.6;">"I understand — but revenue can change quite a bit year to year. Do you have a rough idea of what 2025 actually came in at, or what a typical month looks like for you?"</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:10px;padding:12px 14px;display:flex;align-items:flex-start;gap:10px;">
+                                <i class="fas fa-times-circle" style="color:#ef4444;flex-shrink:0;margin-top:2px;font-size:13px;"></i>
+                                <div>
+                                    <p style="font-size:12px;font-weight:900;text-transform:uppercase;color:#ef4444;letter-spacing:0.08em;margin-bottom:4px;">They Only Know 2024 — Cannot Work</p>
+                                    <p style="font-size:14px;font-weight:600;color:#fca5a5;line-height:1.6;">If they can only give 2024 — <strong style="color:white;">do not proceed.</strong> Schedule a callback.</p>
+                                    <div style="background:rgba(239,68,68,0.08);border-radius:6px;padding:7px 10px;margin-top:8px;display:flex;align-items:center;gap:6px;">
+                                        <i class="fas fa-calendar-alt" style="color:#ef4444;font-size:12px;flex-shrink:0;"></i>
+                                        <p style="font-size:12px;font-weight:900;text-transform:uppercase;color:#f87171;">"Let me schedule a follow-up for when you have that number ready."</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <p class="text-red-400 font-black italic mt-6 border-t border-red-900/50 pt-4 uppercase text-center text-sm">If qualifiers are not met you cannot transfer!!!</p>
+        </div>
+
+        <div>
+            <div class="flex items-center gap-3 mb-4 px-1">
+                <div style="width:36px;height:36px;border-radius:10px;background:rgba(251,191,36,0.15);border:1px solid rgba(251,191,36,0.3);display:flex;align-items:center;justify-content:center;">
+                    <i class="fas fa-industry text-yellow-400 text-sm"></i>
+                </div>
+                <div>
+                    <div class="header-font text-xs text-yellow-500 uppercase tracking-widest italic mb-0.5">Know Before You Transfer</div>
+                    <div class="header-font text-base font-black text-white uppercase italic">Industry Drill-Down</div>
+                </div>
+            </div>
+            <div class="space-y-3">
+                <div class="industry-card" style="border-color:rgba(249,115,22,0.25);">
+                    <div class="industry-header" onclick="toggleIndustry(this)" style="background:linear-gradient(90deg,rgba(249,115,22,0.08),transparent);">
+                        <div class="flex items-center gap-3"><span style="font-size:1.3rem;">🚜</span><div><div class="font-black text-white text-sm uppercase tracking-wide">Tractor</div><div style="font-size:10px;font-weight:700;color:#f97316;text-transform:uppercase;letter-spacing:0.08em;">Depends on tractor type</div></div></div>
+                        <div class="flex items-center gap-2"><span style="font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.08em;color:#f97316;background:rgba(249,115,22,0.12);border:1px solid rgba(249,115,22,0.25);border-radius:20px;padding:2px 8px;">Ask First</span><i class="fas fa-chevron-down industry-arrow"></i></div>
+                    </div>
+                    <div class="industry-body"><div class="industry-body-inner">
+                        <div style="background:rgba(249,115,22,0.06);border:1px solid rgba(249,115,22,0.15);border-radius:10px;padding:10px 14px;margin-bottom:12px;"><p style="font-size:10px;font-weight:900;text-transform:uppercase;color:#f97316;letter-spacing:0.08em;margin-bottom:4px;">Key Question to Ask</p><p style="font-size:13px;font-weight:700;color:white;font-style:italic;">"Is it a detachable tractor?"</p></div>
+                        <div class="verdict-no"><i class="fas fa-times-circle" style="color:#ef4444;flex-shrink:0;"></i><div><p style="font-size:11px;font-weight:900;text-transform:uppercase;color:#ef4444;">Detachable Tractor = Truck — Cannot Work</p><p style="font-size:11px;color:#fca5a5;margin-top:2px;">A detachable tractor is classified as a truck. This falls under the No Trucking rule — end and move on.</p></div></div>
+                        <div class="verdict-yes" style="margin-top:8px;"><i class="fas fa-check-circle" style="color:#22c55e;flex-shrink:0;"></i><div><p style="font-size:11px;font-weight:900;text-transform:uppercase;color:#22c55e;">Non-Detachable (Farm / Equipment) — Can Work</p><p style="font-size:11px;color:#86efac;margin-top:2px;">Farm tractors or heavy equipment that are not detachable semis can qualify.</p></div></div>
+                    </div></div>
+                </div>
+                <div class="industry-card" style="border-color:rgba(34,197,94,0.25);">
+                    <div class="industry-header" onclick="toggleIndustry(this)" style="background:linear-gradient(90deg,rgba(34,197,94,0.08),transparent);">
+                        <div class="flex items-center gap-3"><span style="font-size:1.3rem;">🌲</span><div><div class="font-black text-white text-sm uppercase tracking-wide">Logging</div><div style="font-size:10px;font-weight:700;color:#22c55e;text-transform:uppercase;letter-spacing:0.08em;">Must operate all 12 months — no exceptions</div></div></div>
+                        <div class="flex items-center gap-2"><span style="font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.08em;color:#22c55e;background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.25);border-radius:20px;padding:2px 8px;">Ask First</span><i class="fas fa-chevron-down industry-arrow"></i></div>
+                    </div>
+                    <div class="industry-body"><div class="industry-body-inner">
+                        <div style="background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.18);border-radius:10px;padding:12px 14px;margin-bottom:14px;display:flex;align-items:flex-start;gap:10px;"><i class="fas fa-snowflake" style="color:#22c55e;flex-shrink:0;margin-top:2px;font-size:12px;"></i><div><p style="font-size:10px;font-weight:900;text-transform:uppercase;color:#22c55e;letter-spacing:0.08em;margin-bottom:4px;">Why This Matters</p><p style="font-size:12px;font-weight:600;color:#cbd5e1;line-height:1.55;">Logging is a seasonal industry. Many operators shut down in winter. To qualify, they must be operating <strong style="color:white;">all 12 months of the year</strong>.</p></div></div>
+                        <div class="drill-step neutral-step mb-2"><div class="drill-step-num" style="background:rgba(34,197,94,0.2);color:#4ade80;">1</div><div><p style="font-size:10px;font-weight:900;text-transform:uppercase;color:#4ade80;letter-spacing:0.07em;margin-bottom:3px;">Confirm the Industry</p><p style="font-size:13px;font-weight:700;color:white;font-style:italic;">"Is this a logging or timber business?"</p></div></div>
+                        <div style="background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.25);border-radius:10px;padding:12px 14px;margin-bottom:14px;"><p style="font-size:10px;font-weight:900;text-transform:uppercase;color:#22c55e;letter-spacing:0.08em;margin-bottom:6px;">Step 2 — The Critical Question</p><p style="font-size:14px;font-weight:700;color:white;font-style:italic;line-height:1.5;">"How many months out of the year is your business actively operating?"</p></div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+                            <div class="verdict-no" style="margin-top:0;flex-direction:column;align-items:flex-start;gap:6px;"><div style="display:flex;align-items:center;gap:6px;"><i class="fas fa-times-circle" style="color:#ef4444;flex-shrink:0;font-size:13px;"></i><p style="font-size:11px;font-weight:900;text-transform:uppercase;color:#ef4444;">Under 12 Months — Cannot Work</p></div><p style="font-size:11px;color:#fca5a5;line-height:1.5;">Any seasonal shutdown disqualifies them.</p></div>
+                            <div class="verdict-yes" style="margin-top:0;flex-direction:column;align-items:flex-start;gap:6px;"><div style="display:flex;align-items:center;gap:6px;"><i class="fas fa-check-circle" style="color:#22c55e;flex-shrink:0;font-size:13px;"></i><p style="font-size:11px;font-weight:900;text-transform:uppercase;color:#22c55e;">Full 12 Months — Can Work</p></div><p style="font-size:11px;color:#86efac;line-height:1.5;">Year-round confirmed — proceed to transfer.</p></div>
+                        </div>
+                    </div></div>
+                </div>
+                <div class="industry-card" style="border-color:rgba(59,130,246,0.25);">
+                    <div class="industry-header" onclick="toggleIndustry(this)" style="background:linear-gradient(90deg,rgba(59,130,246,0.08),transparent);">
+                        <div class="flex items-center gap-3"><span style="font-size:1.3rem;">🏗️</span><div><div class="font-black text-white text-sm uppercase tracking-wide">Construction</div><div style="font-size:10px;font-weight:700;color:#3b82f6;text-transform:uppercase;letter-spacing:0.08em;">Depends on fund use</div></div></div>
+                        <div class="flex items-center gap-2"><span style="font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.08em;color:#3b82f6;background:rgba(59,130,246,0.12);border:1px solid rgba(59,130,246,0.25);border-radius:20px;padding:2px 8px;">Drill Down</span><i class="fas fa-chevron-down industry-arrow"></i></div>
+                    </div>
+                    <div class="industry-body"><div class="industry-body-inner">
+                        <div class="drill-step neutral-step mb-3"><div class="drill-step-num" style="background:rgba(59,130,246,0.2);color:#60a5fa;">1</div><div><p style="font-size:10px;font-weight:900;text-transform:uppercase;color:#60a5fa;letter-spacing:0.07em;margin-bottom:3px;">Ask</p><p style="font-size:13px;font-weight:700;color:white;font-style:italic;">"Does your construction business deal with trucking?"</p></div></div>
+                        <div style="border-left:2px solid rgba(249,115,22,0.4);padding-left:14px;margin-left:10px;margin-bottom:10px;">
+                            <p style="font-size:9px;font-weight:900;text-transform:uppercase;color:#f97316;letter-spacing:0.08em;margin-bottom:8px;">If Yes — Trucking Involved:</p>
+                            <div class="drill-step neutral-step mb-3"><div class="drill-step-num" style="background:rgba(249,115,22,0.2);color:#fb923c;">2</div><div><p style="font-size:10px;font-weight:900;text-transform:uppercase;color:#fb923c;letter-spacing:0.07em;margin-bottom:3px;">Ask</p><p style="font-size:13px;font-weight:700;color:white;font-style:italic;">"Is trucking a major part of your business?"</p></div></div>
+                            <div style="border-left:2px solid rgba(239,68,68,0.4);padding-left:14px;margin-left:10px;margin-bottom:10px;">
+                                <p style="font-size:9px;font-weight:900;text-transform:uppercase;color:#ef4444;letter-spacing:0.08em;margin-bottom:8px;">If Yes — Major Part:</p>
+                                <div class="drill-step neutral-step mb-3"><div class="drill-step-num" style="background:rgba(239,68,68,0.2);color:#f87171;">3</div><div><p style="font-size:10px;font-weight:900;text-transform:uppercase;color:#f87171;letter-spacing:0.07em;margin-bottom:3px;">Ask</p><p style="font-size:13px;font-weight:700;color:white;font-style:italic;">"What will you be using the funds for?"</p></div></div>
+                                <div class="verdict-no"><i class="fas fa-times-circle" style="color:#ef4444;flex-shrink:0;"></i><div><p style="font-size:11px;font-weight:900;text-transform:uppercase;color:#ef4444;">Funds for Trucks — Cannot Work</p><p style="font-size:11px;color:#fca5a5;margin-top:2px;">If funds are going toward trucks or trucking equipment — cannot proceed.</p></div></div>
+                                <div class="verdict-yes" style="margin-top:8px;"><i class="fas fa-check-circle" style="color:#22c55e;flex-shrink:0;"></i><div><p style="font-size:11px;font-weight:900;text-transform:uppercase;color:#22c55e;">Funds for Crew / Payroll / Other — Can Work</p><p style="font-size:11px;color:#86efac;margin-top:2px;">If funds are for crew, payroll, materials, or anything besides trucking — transfer.</p></div></div>
+                            </div>
+                        </div>
+                        <div class="verdict-yes"><i class="fas fa-check-circle" style="color:#22c55e;flex-shrink:0;"></i><div><p style="font-size:11px;font-weight:900;text-transform:uppercase;color:#22c55e;">No Trucking Involved — Can Work</p><p style="font-size:11px;color:#86efac;margin-top:2px;">Construction with no trucking component qualifies. Proceed with transfer.</p></div></div>
+                    </div></div>
+                </div>
+                <div class="industry-card" style="border-color:rgba(168,85,247,0.25);">
+                    <div class="industry-header" onclick="toggleIndustry(this)" style="background:linear-gradient(90deg,rgba(168,85,247,0.08),transparent);">
+                        <div class="flex items-center gap-3"><span style="font-size:1.3rem;">⚖️</span><div><div class="font-black text-white text-sm uppercase tracking-wide">Lawyer / Attorney</div><div style="font-size:10px;font-weight:700;color:#a855f7;text-transform:uppercase;letter-spacing:0.08em;">Even if they own another business</div></div></div>
+                        <div class="flex items-center gap-2"><span style="font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.08em;color:#a855f7;background:rgba(168,85,247,0.12);border:1px solid rgba(168,85,247,0.25);border-radius:20px;padding:2px 8px;">Read This</span><i class="fas fa-chevron-down industry-arrow"></i></div>
+                    </div>
+                    <div class="industry-body"><div class="industry-body-inner">
+                        <div style="background:rgba(168,85,247,0.07);border:1px solid rgba(168,85,247,0.2);border-radius:10px;padding:10px 14px;margin-bottom:12px;"><p style="font-size:10px;font-weight:900;text-transform:uppercase;color:#a855f7;letter-spacing:0.08em;margin-bottom:4px;">Key Question to Ask</p><p style="font-size:13px;font-weight:700;color:white;font-style:italic;">"What is your profession or primary occupation?"</p></div>
+                        <div class="verdict-no"><i class="fas fa-times-circle" style="color:#ef4444;flex-shrink:0;"></i><div><p style="font-size:11px;font-weight:900;text-transform:uppercase;color:#ef4444;">Lawyer or Attorney — Cannot Work. Period.</p><p style="font-size:11px;color:#fca5a5;margin-top:2px;">Even if they also own a separate business — automatic disqualifier. Do not transfer under any circumstances.</p></div></div>
+                    </div></div>
+                </div>
+                <!-- TRANSPORTATION -->
+                <div class="industry-card" style="border-color:rgba(6,182,212,0.25);">
+                    <div class="industry-header" onclick="toggleIndustry(this)" style="background:linear-gradient(90deg,rgba(6,182,212,0.08),transparent);">
+                        <div class="flex items-center gap-3"><span style="font-size:1.3rem;">🚌</span><div><div class="font-black text-white text-sm uppercase tracking-wide">Transportation</div><div style="font-size:10px;font-weight:700;color:#06b6d4;text-transform:uppercase;letter-spacing:0.08em;">Depends on transport type</div></div></div>
+                        <div class="flex items-center gap-2"><span style="font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.08em;color:#06b6d4;background:rgba(6,182,212,0.12);border:1px solid rgba(6,182,212,0.25);border-radius:20px;padding:2px 8px;">Ask First</span><i class="fas fa-chevron-down industry-arrow"></i></div>
+                    </div>
+                    <div class="industry-body"><div class="industry-body-inner">
+                        <!-- Intro question -->
+                        <div style="background:rgba(6,182,212,0.06);border:1px solid rgba(6,182,212,0.18);border-radius:10px;padding:10px 14px;margin-bottom:14px;">
+                            <p style="font-size:10px;font-weight:900;text-transform:uppercase;color:#06b6d4;letter-spacing:0.08em;margin-bottom:4px;">Key Question to Ask</p>
+                            <p style="font-size:13px;font-weight:700;color:white;font-style:italic;">"What type of transportation does your business operate?"</p>
+                        </div>
+                        <!-- Transport types grid -->
+                        <p style="font-size:10px;font-weight:900;text-transform:uppercase;color:#64748b;letter-spacing:0.08em;margin-bottom:10px;">Transportation Types — Select What Applies:</p>
+                        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;">
+                            <!-- Detachable Tractor -->
+                            <div class="cannot-work" style="border-radius:10px;padding:10px 14px;display:flex;align-items:flex-start;gap:10px;">
+                                <span style="font-size:1.1rem;flex-shrink:0;margin-top:1px;">🚛</span>
+                                <div style="flex:1;">
+                                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:3px;">
+                                        <span style="font-size:12px;font-weight:900;color:white;text-transform:uppercase;">Detachable Tractor (Semi / 18-Wheeler)</span>
+                                        <span style="background:rgba(239,68,68,0.25);color:#f87171;font-size:10px;font-weight:900;border-radius:20px;padding:2px 8px;letter-spacing:0.07em;">✗ CANNOT WORK</span>
+                                    </div>
+                                    <p style="font-size:11px;color:#fca5a5;line-height:1.5;">Classified as trucking — falls under the No Trucking rule. End and move on.</p>
+                                </div>
+                            </div>
+                            <!-- Truck -->
+                            <div class="cannot-work" style="border-radius:10px;padding:10px 14px;display:flex;align-items:flex-start;gap:10px;">
+                                <span style="font-size:1.1rem;flex-shrink:0;margin-top:1px;">🚚</span>
+                                <div style="flex:1;">
+                                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:3px;">
+                                        <span style="font-size:12px;font-weight:900;color:white;text-transform:uppercase;">Truck</span>
+                                        <span style="background:rgba(239,68,68,0.25);color:#f87171;font-size:10px;font-weight:900;border-radius:20px;padding:2px 8px;letter-spacing:0.07em;">✗ CANNOT WORK</span>
+                                    </div>
+                                    <p style="font-size:11px;color:#fca5a5;line-height:1.5;">Trucking business — does not qualify. Do not transfer.</p>
+                                </div>
+                            </div>
+                            <!-- Van -->
+                            <div class="cannot-work" style="border-radius:10px;padding:10px 14px;display:flex;align-items:flex-start;gap:10px;">
+                                <span style="font-size:1.1rem;flex-shrink:0;margin-top:1px;">🚐</span>
+                                <div style="flex:1;">
+                                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:3px;">
+                                        <span style="font-size:12px;font-weight:900;color:white;text-transform:uppercase;">Van</span>
+                                        <span style="background:rgba(239,68,68,0.25);color:#f87171;font-size:10px;font-weight:900;border-radius:20px;padding:2px 8px;letter-spacing:0.07em;">✗ CANNOT WORK</span>
+                                    </div>
+                                    <p style="font-size:11px;color:#fca5a5;line-height:1.5;">Delivery or cargo van operations fall under the trucking restriction. Cannot proceed.</p>
+                                </div>
+                            </div>
+                            <!-- Freight Carrier -->
+                            <div class="cannot-work" style="border-radius:10px;padding:10px 14px;display:flex;align-items:flex-start;gap:10px;">
+                                <span style="font-size:1.1rem;flex-shrink:0;margin-top:1px;">📦</span>
+                                <div style="flex:1;">
+                                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:3px;">
+                                        <span style="font-size:12px;font-weight:900;color:white;text-transform:uppercase;">Freight Carrier</span>
+                                        <span style="background:rgba(239,68,68,0.25);color:#f87171;font-size:10px;font-weight:900;border-radius:20px;padding:2px 8px;letter-spacing:0.07em;">✗ CANNOT WORK</span>
+                                    </div>
+                                    <p style="font-size:11px;color:#fca5a5;line-height:1.5;">Freight and cargo carriers are classified under trucking/transport restrictions. Do not transfer.</p>
+                                </div>
+                            </div>
+                            <!-- Other transport types that CAN qualify -->
+                            <div class="can-work" style="border-radius:10px;padding:10px 14px;display:flex;align-items:flex-start;gap:10px;">
+                                <span style="font-size:1.1rem;flex-shrink:0;margin-top:1px;">🚌</span>
+                                <div style="flex:1;">
+                                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:3px;">
+                                        <span style="font-size:12px;font-weight:900;color:white;text-transform:uppercase;">Bus / Coach / Shuttle / Taxi / Rideshare</span>
+                                        <span style="background:rgba(34,197,94,0.25);color:#4ade80;font-size:10px;font-weight:900;border-radius:20px;padding:2px 8px;letter-spacing:0.07em;">✓ CAN WORK</span>
+                                    </div>
+                                    <p style="font-size:11px;color:#86efac;line-height:1.5;">Passenger transport (buses, shuttles, taxis, rideshare fleets) are not under the trucking restriction — proceed to qualify.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Bottom warning -->
+                        <div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-radius:10px;padding:10px 14px;display:flex;align-items:flex-start;gap:8px;">
+                            <i class="fas fa-exclamation-circle" style="color:#ef4444;flex-shrink:0;margin-top:2px;font-size:13px;"></i>
+                            <div>
+                                <p style="font-size:10px;font-weight:900;text-transform:uppercase;color:#ef4444;letter-spacing:0.08em;margin-bottom:3px;">Bottom Line</p>
+                                <p style="font-size:12px;font-weight:700;color:#fca5a5;line-height:1.55;">If they operate a <strong style="color:white;">detachable tractor, truck, van, or freight carrier</strong> — do not transfer. These all fall under the trucking restriction regardless of how the customer describes their business.</p>
+                            </div>
+                        </div>
+                    </div></div>
+                </div>
+                <div style="border-radius:12px;border:1px dashed rgba(255,255,255,0.08);padding:14px 18px;text-align:center;"><p style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;color:#334155;">More industries can be added here</p></div>
+            </div>
+        </div>
+
+        <div class="glass p-6 rounded-3xl border-l-8 border-l-blue-500 bg-blue-500/5">
+            <h3 class="header-font text-sm font-black text-blue-500 uppercase mb-4 italic">Micro-Trust Tips</h3>
+            <div class="text-xs leading-relaxed text-slate-200">
+                <p class="mb-4 italic">After every 2 questions, give a short acknowledgment phrase like:</p>
+                <div class="flex flex-col gap-3 text-blue-300 font-black italic text-center">
+                    <p class="glass p-3 rounded-xl">"Perfect, thank you."</p>
+                    <p class="glass p-3 rounded-xl">"Got it, that helps."</p>
+                    <p class="glass p-3 rounded-xl">"That's great to know."</p>
+                </div>
+                <p class="mt-6 text-xs text-slate-500 uppercase font-black tracking-widest text-center">Keep the rhythm human and build micro-trust.</p>
+            </div>
+        </div>
     </div>
 
-    <!-- REBUTTALS — Edit: html/views/rebuttals.html | js/rebuttals.js -->
-    <div id="rebuttals-view" style="display:none;">
-      <div id="part-rebuttals"></div>
+    <!-- REBUTTALS TAB -->
+    <div id="rebuttals-view" class="hidden space-y-4 px-2 pb-20">
+
+        <!-- Header -->
+        <div style="border-radius:20px;overflow:hidden;border:2px solid rgba(20,184,166,0.4);box-shadow:0 0 30px rgba(20,184,166,0.1);">
+            <div style="background:linear-gradient(135deg,rgba(20,184,166,0.12),rgba(15,118,110,0.22));padding:18px 24px;position:relative;overflow:hidden;">
+                <div style="position:absolute;inset:0;background:repeating-linear-gradient(45deg,transparent,transparent 10px,rgba(20,184,166,0.04) 10px,rgba(20,184,166,0.04) 20px);"></div>
+                <div style="position:relative;display:flex;align-items:center;gap:14px;">
+                    <div style="width:44px;height:44px;border-radius:14px;background:rgba(20,184,166,0.15);border:1px solid rgba(20,184,166,0.35);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fas fa-comments" style="color:#14b8a6;font-size:1.1rem;"></i></div>
+                    <div>
+                        <div style="font-family:Orbitron,sans-serif;font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.14em;color:#14b8a6;margin-bottom:3px;">Quick Reference</div>
+                        <div style="font-family:Orbitron,sans-serif;font-size:17px;font-weight:900;text-transform:uppercase;color:white;line-height:1.1;">Rebuttals</div>
+                        <div style="font-size:11px;font-weight:700;color:#94a3b8;margin-top:2px;">Select an objection above to see your response</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Search Box -->
+        <div style="position:relative;">
+            <i class="fas fa-search" style="position:absolute;left:16px;top:50%;transform:translateY(-50%);color:#14b8a6;font-size:13px;pointer-events:none;"></i>
+            <input id="rebuttal-search" type="text" placeholder="Search objections..."
+                oninput="filterRebuttalSearch(this.value)"
+                style="width:100%;background:rgba(20,184,166,0.06);border:1.5px solid rgba(20,184,166,0.3);border-radius:14px;color:white;font-size:13px;font-weight:600;padding:13px 16px 13px 44px;outline:none;font-family:'Inter',sans-serif;box-sizing:border-box;transition:border-color 0.2s,box-shadow 0.2s;"
+                onfocus="this.style.borderColor='#14b8a6';this.style.boxShadow='0 0 0 3px rgba(20,184,166,0.15)'"
+                onblur="this.style.borderColor='rgba(20,184,166,0.3)';this.style.boxShadow='none'"/>
+        </div>
+
+        <!-- Objection Buttons — all visible, wrap naturally -->
+        <div style="font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;color:#475569;margin-bottom:-4px;">Select Objection</div>
+        <div id="rb-btn-row" style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button id="rb-btn-0" onclick="showRebuttal(0)" style="padding:8px 14px;border-radius:20px;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:0.06em;cursor:pointer;transition:all 0.18s;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#64748b;background:rgba(20,184,166,0.2);border-color:#14b8a6;color:#2dd4bf;">Which Company?</button>
+<button id="rb-btn-1" onclick="showRebuttal(1)" style="padding:8px 14px;border-radius:20px;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:0.06em;cursor:pointer;transition:all 0.18s;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#64748b;">Is This a Scam?</button>
+<button id="rb-btn-2" onclick="showRebuttal(2)" style="padding:8px 14px;border-radius:20px;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:0.06em;cursor:pointer;transition:all 0.18s;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#64748b;">Email Me First</button>
+<button id="rb-btn-3" onclick="showRebuttal(3)" style="padding:8px 14px;border-radius:20px;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:0.06em;cursor:pointer;transition:all 0.18s;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#64748b;">Why Calling?</button>
+<button id="rb-btn-4" onclick="showRebuttal(4)" style="padding:8px 14px;border-radius:20px;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:0.06em;cursor:pointer;transition:all 0.18s;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#64748b;">Are You a Bank?</button>
+<button id="rb-btn-5" onclick="showRebuttal(5)" style="padding:8px 14px;border-radius:20px;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:0.06em;cursor:pointer;transition:all 0.18s;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#64748b;">Bad Credit</button>
+<button id="rb-btn-6" onclick="showRebuttal(6)" style="padding:8px 14px;border-radius:20px;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:0.06em;cursor:pointer;transition:all 0.18s;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#64748b;">Don't Need Loan</button>
+<button id="rb-btn-7" onclick="showRebuttal(7)" style="padding:8px 14px;border-radius:20px;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:0.06em;cursor:pointer;transition:all 0.18s;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#64748b;">Why No Info?</button>
+<button id="rb-btn-8" onclick="showRebuttal(8)" style="padding:8px 14px;border-radius:20px;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:0.06em;cursor:pointer;transition:all 0.18s;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#64748b;">Interest Rate?</button>
+<button id="rb-btn-9" onclick="showRebuttal(9)" style="padding:8px 14px;border-radius:20px;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:0.06em;cursor:pointer;transition:all 0.18s;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#64748b;">Cheaper Option</button>
+<button id="rb-btn-10" onclick="showRebuttal(10)" style="padding:8px 14px;border-radius:20px;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:0.06em;cursor:pointer;transition:all 0.18s;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#64748b;">How'd You Get My Info?</button>
+<button id="rb-btn-11" onclick="showRebuttal(11)" style="padding:8px 14px;border-radius:20px;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:0.06em;cursor:pointer;transition:all 0.18s;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#64748b;">Company Name?</button>
+<button id="rb-btn-12" onclick="showRebuttal(12)" style="padding:8px 14px;border-radius:20px;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:0.06em;cursor:pointer;transition:all 0.18s;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#64748b;">Type of Loan?</button>
+<button id="rb-btn-13" onclick="showRebuttal(13)" style="padding:8px 14px;border-radius:20px;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:0.06em;cursor:pointer;transition:all 0.18s;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#64748b;">Pre-Qualified?</button>
+<button id="rb-btn-14" onclick="showRebuttal(14)" style="padding:8px 14px;border-radius:20px;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:0.06em;cursor:pointer;transition:all 0.18s;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#64748b;">Didn't Apply</button>
+<button id="rb-btn-15" onclick="showRebuttal(15)" style="padding:8px 14px;border-radius:20px;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:0.06em;cursor:pointer;transition:all 0.18s;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#64748b;">Already Approved?</button>
+<button id="rb-btn-16" onclick="showRebuttal(16)" style="padding:8px 14px;border-radius:20px;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:0.06em;cursor:pointer;transition:all 0.18s;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#64748b;">Where Located?</button>
+<button id="rb-btn-17" onclick="showRebuttal(17)" style="padding:8px 14px;border-radius:20px;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:0.06em;cursor:pointer;transition:all 0.18s;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#64748b;">Business Name?</button>
+<button id="rb-btn-18" onclick="showRebuttal(18)" style="padding:8px 14px;border-radius:20px;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:0.06em;cursor:pointer;transition:all 0.18s;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#64748b;">Don't Know Biz Name</button>
+
+        </div>
+
+        <!-- No results -->
+        <div id="rebuttal-no-results" style="display:none;text-align:center;padding:20px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:14px;">
+            <div style="font-size:1.3rem;margin-bottom:6px;">🤔</div>
+            <div style="font-size:12px;font-weight:900;color:#475569;text-transform:uppercase;letter-spacing:0.08em;">No rebuttal found — try different keywords</div>
+        </div>
+
+        <!-- Rebuttal Response Panel -->
+        <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.08);border-radius:18px;padding:18px;">
+            <div id="rb-panel-0" style="display:block;animation:fadeSlideIn 0.2s ease;">
+        <div style="font-family:Orbitron,sans-serif;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.12em;color:#14b8a6;margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+            <div style="width:8px;height:8px;border-radius:50%;background:#14b8a6;flex-shrink:0;"></div>
+            Identity / Legitimacy
+        </div>
+        <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:12px 16px;margin-bottom:12px;">
+            <div style="font-size:15px;font-weight:900;color:white;line-height:1.4;">"Which company do you represent?"</div>
+        </div>
+        <div style="background:rgba(20,184,166,0.05);border:1px solid rgba(20,184,166,0.18);border-radius:12px;padding:14px 16px;">
+                        <div style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;color:#14b8a6;margin-bottom:10px;display:flex;align-items:center;gap:6px;"><i class="fas fa-reply" style="font-size:10px;"></i> Your Response</div>
+                        <p style="font-size:15px;font-weight:700;color:white;font-style:italic;line-height:1.7;">"We're the Business Loan Division. We help connect business owners to the right lending programs through our partner network."</p>
+                    </div>
+    </div>
+<div id="rb-panel-1" style="display:none;animation:fadeSlideIn 0.2s ease;">
+        <div style="font-family:Orbitron,sans-serif;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.12em;color:#ef4444;margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+            <div style="width:8px;height:8px;border-radius:50%;background:#ef4444;flex-shrink:0;"></div>
+            Trust / Skepticism
+        </div>
+        <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:12px 16px;margin-bottom:12px;">
+            <div style="font-size:15px;font-weight:900;color:white;line-height:1.4;">"Is this a scam?"</div>
+        </div>
+        <div style="background:rgba(239,68,68,0.05);border:1px solid rgba(239,68,68,0.18);border-radius:12px;padding:14px 16px;">
+                        <div style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;color:#ef4444;margin-bottom:10px;display:flex;align-items:center;gap:6px;"><i class="fas fa-reply" style="font-size:10px;"></i> Your Response</div>
+                        <p style="font-size:15px;font-weight:700;color:white;font-style:italic;line-height:1.7;">"I understand the concern. This is a legitimate outreach from the Business Loan Division in California. We work only with licensed financial institutions."</p>
+                    </div>
+    </div>
+<div id="rb-panel-2" style="display:none;animation:fadeSlideIn 0.2s ease;">
+        <div style="font-family:Orbitron,sans-serif;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.12em;color:#f97316;margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+            <div style="width:8px;height:8px;border-radius:50%;background:#f97316;flex-shrink:0;"></div>
+            Delay Tactic
+        </div>
+        <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:12px 16px;margin-bottom:12px;">
+            <div style="font-size:15px;font-weight:900;color:white;line-height:1.4;">"Can you email me something first?"</div>
+        </div>
+        <div style="background:rgba(249,115,22,0.05);border:1px solid rgba(249,115,22,0.18);border-radius:12px;padding:14px 16px;">
+                        <div style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;color:#f97316;margin-bottom:10px;display:flex;align-items:center;gap:6px;"><i class="fas fa-reply" style="font-size:10px;"></i> Your Response</div>
+                        <p style="font-size:15px;font-weight:700;color:white;font-style:italic;line-height:1.7;">"Once I connect you with the senior advisor, they can send you all the information directly. I just need to confirm your business details first."</p>
+                    </div>
+    </div>
+<div id="rb-panel-3" style="display:none;animation:fadeSlideIn 0.2s ease;">
+        <div style="font-family:Orbitron,sans-serif;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.12em;color:#eab308;margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+            <div style="width:8px;height:8px;border-radius:50%;background:#eab308;flex-shrink:0;"></div>
+            Channel Objection
+        </div>
+        <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:12px 16px;margin-bottom:12px;">
+            <div style="font-size:15px;font-weight:900;color:white;line-height:1.4;">"Why are you calling and not emailing?"</div>
+        </div>
+        <div style="background:rgba(234,179,8,0.05);border:1px solid rgba(234,179,8,0.18);border-radius:12px;padding:14px 16px;">
+                        <div style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;color:#eab308;margin-bottom:10px;display:flex;align-items:center;gap:6px;"><i class="fas fa-reply" style="font-size:10px;"></i> Your Response</div>
+                        <p style="font-size:15px;font-weight:700;color:white;font-style:italic;line-height:1.7;">"Phone is the quickest way to confirm eligibility and make sure the right person gets connected. It only takes a minute."</p>
+                    </div>
+    </div>
+<div id="rb-panel-4" style="display:none;animation:fadeSlideIn 0.2s ease;">
+        <div style="font-family:Orbitron,sans-serif;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.12em;color:#3b82f6;margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+            <div style="width:8px;height:8px;border-radius:50%;background:#3b82f6;flex-shrink:0;"></div>
+            Entity Clarification
+        </div>
+        <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:12px 16px;margin-bottom:12px;">
+            <div style="font-size:15px;font-weight:900;color:white;line-height:1.4;">"Are you a bank?"</div>
+        </div>
+        <div style="background:rgba(59,130,246,0.05);border:1px solid rgba(59,130,246,0.18);border-radius:12px;padding:14px 16px;">
+                        <div style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;color:#3b82f6;margin-bottom:10px;display:flex;align-items:center;gap:6px;"><i class="fas fa-reply" style="font-size:10px;"></i> Your Response</div>
+                        <p style="font-size:15px;font-weight:700;color:white;font-style:italic;line-height:1.7;">"No, we're a direct private lender. We work with business-funding programs that provide working capital and lines of credit directly."</p>
+                    </div>
+    </div>
+<div id="rb-panel-5" style="display:none;animation:fadeSlideIn 0.2s ease;">
+        <div style="font-family:Orbitron,sans-serif;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.12em;color:#a855f7;margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+            <div style="width:8px;height:8px;border-radius:50%;background:#a855f7;flex-shrink:0;"></div>
+            Credit Concern
+        </div>
+        <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:12px 16px;margin-bottom:12px;">
+            <div style="font-size:15px;font-weight:900;color:white;line-height:1.4;">"My credit score is bad."</div>
+        </div>
+        <div style="background:rgba(168,85,247,0.05);border:1px solid rgba(168,85,247,0.18);border-radius:12px;padding:14px 16px;">
+                        <div style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;color:#a855f7;margin-bottom:10px;display:flex;align-items:center;gap:6px;"><i class="fas fa-reply" style="font-size:10px;"></i> Your Response</div>
+                        <p style="font-size:15px;font-weight:700;color:white;font-style:italic;line-height:1.7;">"Totally understood — but a lower score doesn't disqualify you. We look at your full picture, not just credit. You may still qualify."</p>
+                        <div style="margin-top:10px;background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.2);border-radius:8px;padding:8px 12px;display:flex;align-items:center;gap:7px;">
+                            <i class="fas fa-arrow-right" style="color:#3b82f6;font-size:10px;flex-shrink:0;"></i>
+                            <span style="font-size:12px;font-weight:900;text-transform:uppercase;color:#60a5fa;letter-spacing:0.07em;">Go right back to qualifying questions</span>
+                        </div>
+                    </div>
+    </div>
+<div id="rb-panel-6" style="display:none;animation:fadeSlideIn 0.2s ease;">
+        <div style="font-family:Orbitron,sans-serif;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.12em;color:#ec4899;margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+            <div style="width:8px;height:8px;border-radius:50%;background:#ec4899;flex-shrink:0;"></div>
+            Not Interested
+        </div>
+        <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:12px 16px;margin-bottom:12px;">
+            <div style="font-size:15px;font-weight:900;color:white;line-height:1.4;">"I don't need a loan."</div>
+        </div>
+        <div style="background:rgba(236,72,153,0.05);border:1px solid rgba(236,72,153,0.18);border-radius:12px;padding:14px 16px;">
+                        <div style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;color:#ec4899;margin-bottom:10px;display:flex;align-items:center;gap:6px;"><i class="fas fa-reply" style="font-size:10px;"></i> Your Response</div>
+                        <p style="font-size:15px;font-weight:700;color:white;font-style:italic;line-height:1.7;">"Fair enough. Do you see any cash flow gaps or growth opportunities coming up in the next 3–6 months?"</p>
+                        <p style="font-size:12px;font-weight:700;color:#94a3b8;margin-top:8px;line-height:1.6;font-style:italic;">— Wait, let them talk — then: "Sometimes it helps to be pre-qualified so the funding is ready when you need it."</p>
+                        <div style="margin-top:10px;background:rgba(234,179,8,0.08);border:1px solid rgba(234,179,8,0.2);border-radius:8px;padding:8px 12px;display:flex;align-items:center;gap:7px;">
+                            <i class="fas fa-ear-listen" style="color:#eab308;font-size:10px;flex-shrink:0;"></i>
+                            <span style="font-size:12px;font-weight:900;text-transform:uppercase;color:#fbbf24;letter-spacing:0.07em;">See how they respond before moving on</span>
+                        </div>
+                    </div>
+    </div>
+<div id="rb-panel-7" style="display:none;animation:fadeSlideIn 0.2s ease;">
+        <div style="font-family:Orbitron,sans-serif;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.12em;color:#06b6d4;margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+            <div style="width:8px;height:8px;border-radius:50%;background:#06b6d4;flex-shrink:0;"></div>
+            Data / Verification
+        </div>
+        <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:12px 16px;margin-bottom:12px;">
+            <div style="font-size:15px;font-weight:900;color:white;line-height:1.4;">"Why don't you have my information?"</div>
+        </div>
+        <div style="background:rgba(6,182,212,0.05);border:1px solid rgba(6,182,212,0.18);border-radius:12px;padding:14px 16px;">
+                        <div style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;color:#06b6d4;margin-bottom:10px;display:flex;align-items:center;gap:6px;"><i class="fas fa-reply" style="font-size:10px;"></i> Your Response</div>
+                        <p style="font-size:15px;font-weight:700;color:white;font-style:italic;line-height:1.7;">"We pull from multiple sources, but we always verify directly with you to make sure everything is accurate. Once confirmed, we can match you with the right options."</p>
+                        <div style="margin-top:10px;background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.2);border-radius:8px;padding:8px 12px;display:flex;align-items:center;gap:7px;">
+                            <i class="fas fa-arrow-right" style="color:#3b82f6;font-size:10px;flex-shrink:0;"></i>
+                            <span style="font-size:12px;font-weight:900;text-transform:uppercase;color:#60a5fa;letter-spacing:0.07em;">Go right back to qualifying questions</span>
+                        </div>
+                    </div>
+    </div>
+<div id="rb-panel-8" style="display:none;animation:fadeSlideIn 0.2s ease;">
+        <div style="font-family:Orbitron,sans-serif;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.12em;color:#84cc16;margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+            <div style="width:8px;height:8px;border-radius:50%;background:#84cc16;flex-shrink:0;"></div>
+            Rate Question
+        </div>
+        <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:12px 16px;margin-bottom:12px;">
+            <div style="font-size:15px;font-weight:900;color:white;line-height:1.4;">"What is the interest rate?"</div>
+        </div>
+        <div style="background:rgba(132,204,22,0.05);border:1px solid rgba(132,204,22,0.18);border-radius:12px;padding:14px 16px;">
+                        <div style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;color:#84cc16;margin-bottom:10px;display:flex;align-items:center;gap:6px;"><i class="fas fa-reply" style="font-size:10px;"></i> Your Response</div>
+                        <p style="font-size:15px;font-weight:700;color:white;font-style:italic;line-height:1.7;">"Rates depend on your specific risk and credit profile — but the real question is how fast the funding helps your business grow. Our specialist will go over all of that once we confirm you're pre-qualified."</p>
+                        <div style="margin-top:10px;background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.2);border-radius:8px;padding:8px 12px;display:flex;align-items:center;gap:7px;">
+                            <i class="fas fa-arrow-right" style="color:#3b82f6;font-size:10px;flex-shrink:0;"></i>
+                            <span style="font-size:12px;font-weight:900;text-transform:uppercase;color:#60a5fa;letter-spacing:0.07em;">Go right back to qualifying questions</span>
+                        </div>
+                    </div>
+    </div>
+<div id="rb-panel-9" style="display:none;animation:fadeSlideIn 0.2s ease;">
+        <div style="font-family:Orbitron,sans-serif;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.12em;color:#f43f5e;margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+            <div style="width:8px;height:8px;border-radius:50%;background:#f43f5e;flex-shrink:0;"></div>
+            Competitor / Price
+        </div>
+        <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:12px 16px;margin-bottom:12px;">
+            <div style="font-size:15px;font-weight:900;color:white;line-height:1.4;">"I found a cheaper option elsewhere."</div>
+        </div>
+        <div style="background:rgba(244,63,94,0.05);border:1px solid rgba(244,63,94,0.18);border-radius:12px;padding:14px 16px;">
+                        <div style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;color:#f43f5e;margin-bottom:10px;display:flex;align-items:center;gap:6px;"><i class="fas fa-reply" style="font-size:10px;"></i> Your Response</div>
+                        <p style="font-size:15px;font-weight:700;color:white;font-style:italic;line-height:1.7;">"Smart to shop around. Just know that cheaper on the surface isn't always better — hidden costs and strict terms add up. Our specialist can do a side-by-side so you're truly getting the best deal. Sound fair?"</p>
+                        <div style="margin-top:10px;background:rgba(234,179,8,0.08);border:1px solid rgba(234,179,8,0.2);border-radius:8px;padding:8px 12px;display:flex;align-items:center;gap:7px;">
+                            <i class="fas fa-ear-listen" style="color:#eab308;font-size:10px;flex-shrink:0;"></i>
+                            <span style="font-size:12px;font-weight:900;text-transform:uppercase;color:#fbbf24;letter-spacing:0.07em;">Wait for their response</span>
+                        </div>
+                    </div>
+    </div>
+<div id="rb-panel-10" style="display:none;animation:fadeSlideIn 0.2s ease;">
+        <div style="font-family:Orbitron,sans-serif;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.12em;color:#8b5cf6;margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+            <div style="width:8px;height:8px;border-radius:50%;background:#8b5cf6;flex-shrink:0;"></div>
+            Privacy Concern
+        </div>
+        <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:12px 16px;margin-bottom:12px;">
+            <div style="font-size:15px;font-weight:900;color:white;line-height:1.4;">"How did you get my information?"</div>
+        </div>
+        <div style="background:rgba(139,92,246,0.05);border:1px solid rgba(139,92,246,0.18);border-radius:12px;padding:14px 16px;">
+                        <div style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;color:#8b5cf6;margin-bottom:10px;display:flex;align-items:center;gap:6px;"><i class="fas fa-reply" style="font-size:10px;"></i> Your Response</div>
+                        <p style="font-size:15px;font-weight:700;color:white;font-style:italic;line-height:1.7;">"Totally fair question. We work with a network of trusted financial partners — if you've ever inquired about business financing, your info may have been shared to match you with the best options. Your privacy is fully protected."</p>
+                        <div style="margin-top:10px;background:rgba(234,179,8,0.08);border:1px solid rgba(234,179,8,0.2);border-radius:8px;padding:8px 12px;display:flex;align-items:center;gap:7px;">
+                            <i class="fas fa-ear-listen" style="color:#eab308;font-size:10px;flex-shrink:0;"></i>
+                            <span style="font-size:12px;font-weight:900;text-transform:uppercase;color:#fbbf24;letter-spacing:0.07em;">Wait — then go back to where you left off</span>
+                        </div>
+                    </div>
+    </div>
+<div id="rb-panel-11" style="display:none;animation:fadeSlideIn 0.2s ease;">
+        <div style="font-family:Orbitron,sans-serif;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.12em;color:#6366f1;margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+            <div style="width:8px;height:8px;border-radius:50%;background:#6366f1;flex-shrink:0;"></div>
+            Company Identity — Full Flow
+        </div>
+        <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:12px 16px;margin-bottom:12px;">
+            <div style="font-size:15px;font-weight:900;color:white;line-height:1.4;">"What is the name of the company?"</div>
+        </div>
+        <!-- Step-by-step flow -->
+                    <div style="display:flex;flex-direction:column;gap:10px;">
+
+                        <!-- Step 1 -->
+                        <div style="display:flex;gap:10px;align-items:flex-start;">
+                            <div style="width:22px;height:22px;border-radius:50%;background:rgba(99,102,241,0.2);border:1px solid rgba(99,102,241,0.4);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;font-size:10px;font-weight:900;color:#818cf8;">1</div>
+                            <div style="background:rgba(99,102,241,0.07);border:1px solid rgba(99,102,241,0.18);border-radius:10px;padding:10px 14px;flex:1;">
+                                <div style="font-size:9px;font-weight:900;text-transform:uppercase;color:#818cf8;letter-spacing:0.08em;margin-bottom:5px;">First Response</div>
+                                <p style="font-size:15px;font-weight:700;color:white;font-style:italic;line-height:1.65;">"We are the Business Loan Division. We work with multiple financial lenders and match you with the right one based on your specific situation."</p>
+                            </div>
+                        </div>
+
+                        <!-- Push back arrow -->
+                        <div style="display:flex;align-items:center;gap:8px;padding:0 4px;">
+                            <div style="flex:1;height:1px;background:rgba(255,255,255,0.06);"></div>
+                            <span style="font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.08em;color:#475569;">If they push back — "But that doesn't give me the name of the company"</span>
+                            <div style="flex:1;height:1px;background:rgba(255,255,255,0.06);"></div>
+                        </div>
+
+                        <!-- Step 2 -->
+                        <div style="display:flex;gap:10px;align-items:flex-start;">
+                            <div style="width:22px;height:22px;border-radius:50%;background:rgba(99,102,241,0.2);border:1px solid rgba(99,102,241,0.4);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;font-size:10px;font-weight:900;color:#818cf8;">2</div>
+                            <div style="background:rgba(99,102,241,0.07);border:1px solid rgba(99,102,241,0.18);border-radius:10px;padding:10px 14px;flex:1;">
+                                <div style="font-size:9px;font-weight:900;text-transform:uppercase;color:#818cf8;letter-spacing:0.08em;margin-bottom:5px;">Hold Firm — Stay Calm</div>
+                                <p style="font-size:15px;font-weight:700;color:white;font-style:italic;line-height:1.65;">"Like I said, Sir/Ma'am, we are the Business Loan Division. When I connect you with the senior advisor, they will go over exactly who we represent — but before I do that, I just need to ask you a few simple questions, if that's okay."</p>
+                            </div>
+                        </div>
+
+                        <!-- Step 3 — redirect -->
+                        <div style="display:flex;gap:10px;align-items:flex-start;">
+                            <div style="width:22px;height:22px;border-radius:50%;background:rgba(20,184,166,0.2);border:1px solid rgba(20,184,166,0.4);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;font-size:10px;font-weight:900;color:#14b8a6;">→</div>
+                            <div style="background:rgba(20,184,166,0.06);border:1px solid rgba(20,184,166,0.2);border-radius:10px;padding:10px 14px;flex:1;display:flex;align-items:center;gap:8px;">
+                                <i class="fas fa-arrow-right" style="color:#14b8a6;font-size:11px;flex-shrink:0;"></i>
+                                <span style="font-size:12px;font-weight:900;text-transform:uppercase;color:#2dd4bf;letter-spacing:0.07em;">Immediately go back into qualifying questions</span>
+                            </div>
+                        </div>
+
+                        <!-- Extra scripts for 5 situations -->
+                        <div style="border-top:1px solid rgba(255,255,255,0.06);padding-top:12px;margin-top:2px;">
+                            <div style="font-size:9px;font-weight:900;text-transform:uppercase;color:#64748b;letter-spacing:0.1em;margin-bottom:10px;">5 Ways They Might Ask This — & How to Handle Each</div>
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+
+                                <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:9px;padding:10px 13px;">
+                                    <div style="display:flex;align-items:center;gap:7px;margin-bottom:5px;"><span style="background:rgba(99,102,241,0.2);color:#a5b4fc;font-size:9px;font-weight:900;border-radius:20px;padding:2px 8px;">SITUATION 1</span><span style="font-size:11px;font-weight:700;color:#94a3b8;font-style:italic;">"What's the name of the company you're from?"</span></div>
+                                    <p style="font-size:14px;font-weight:700;color:white;line-height:1.6;font-style:italic;">"We're the Business Loan Division — we're the verification team that connects you with the right lender. The advisor you'll speak with will introduce themselves fully."</p>
+                                </div>
+
+                                <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:9px;padding:10px 13px;">
+                                    <div style="display:flex;align-items:center;gap:7px;margin-bottom:5px;"><span style="background:rgba(99,102,241,0.2);color:#a5b4fc;font-size:9px;font-weight:900;border-radius:20px;padding:2px 8px;">SITUATION 2</span><span style="font-size:11px;font-weight:700;color:#94a3b8;font-style:italic;">"Are you calling from a bank? Which one?"</span></div>
+                                    <p style="font-size:14px;font-weight:700;color:white;line-height:1.6;font-style:italic;">"We're not a bank — we're the Business Loan Division. We work across multiple lenders and match you to the best fit. That's exactly why we verify first."</p>
+                                </div>
+
+                                <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:9px;padding:10px 13px;">
+                                    <div style="display:flex;align-items:center;gap:7px;margin-bottom:5px;"><span style="background:rgba(99,102,241,0.2);color:#a5b4fc;font-size:9px;font-weight:900;border-radius:20px;padding:2px 8px;">SITUATION 3</span><span style="font-size:11px;font-weight:700;color:#94a3b8;font-style:italic;">"I need a company name before I answer anything."</span></div>
+                                    <p style="font-size:14px;font-weight:700;color:white;line-height:1.6;font-style:italic;">"Absolutely — the Business Loan Division. And once I get you to the senior advisor, they'll provide full company details. I just need 2 minutes to verify you qualify first."</p>
+                                </div>
+
+                                <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:9px;padding:10px 13px;">
+                                    <div style="display:flex;align-items:center;gap:7px;margin-bottom:5px;"><span style="background:rgba(99,102,241,0.2);color:#a5b4fc;font-size:9px;font-weight:900;border-radius:20px;padding:2px 8px;">SITUATION 4</span><span style="font-size:11px;font-weight:700;color:#94a3b8;font-style:italic;">"Can you send me your company website or email?"</span></div>
+                                    <p style="font-size:14px;font-weight:700;color:white;line-height:1.6;font-style:italic;">"The senior advisor can absolutely send that over once you're connected. Right now I just need to confirm a few details to make sure we can actually help you."</p>
+                                </div>
+
+                                <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:9px;padding:10px 13px;">
+                                    <div style="display:flex;align-items:center;gap:7px;margin-bottom:5px;"><span style="background:rgba(99,102,241,0.2);color:#a5b4fc;font-size:9px;font-weight:900;border-radius:20px;padding:2px 8px;">SITUATION 5</span><span style="font-size:11px;font-weight:700;color:#94a3b8;font-style:italic;">"I've never heard of you — how do I know you're legit?"</span></div>
+                                    <p style="font-size:14px;font-weight:700;color:white;line-height:1.6;font-style:italic;">"That's a fair point. We're the Business Loan Division — a licensed verification team based in California. We don't ask for money, we don't charge fees. We simply verify and connect. Your advisor will confirm everything."</p>
+                                </div>
+
+                            </div>
+                        </div>
+
+                    </div>
+    </div>
+<div id="rb-panel-12" style="display:none;animation:fadeSlideIn 0.2s ease;">
+        <div style="font-family:Orbitron,sans-serif;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.12em;color:#10b981;margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+            <div style="width:8px;height:8px;border-radius:50%;background:#10b981;flex-shrink:0;"></div>
+            Loan Type Inquiry
+        </div>
+        <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:12px 16px;margin-bottom:12px;">
+            <div style="font-size:15px;font-weight:900;color:white;line-height:1.4;">"What type of loan is this?"</div>
+        </div>
+        <div style="background:rgba(16,185,129,0.05);border:1px solid rgba(16,185,129,0.18);border-radius:12px;padding:14px 16px;">
+                        <div style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;color:#10b981;margin-bottom:10px;display:flex;align-items:center;gap:6px;"><i class="fas fa-reply" style="font-size:10px;"></i> Your Response</div>
+                        <p style="font-size:15px;font-weight:700;color:white;font-style:italic;line-height:1.7;">"We deal with lines of credit and working capital. As I mentioned, we are a direct, private lender — these are not government-backed loans. The senior advisor will be able to explain everything in more detail for you. We can go ahead with the questions if you're still interested."</p>
+                        <div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                            <div style="background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);border-radius:8px;padding:9px 12px;text-align:center;">
+                                <div style="font-size:9px;font-weight:900;text-transform:uppercase;color:#10b981;letter-spacing:0.08em;margin-bottom:3px;">✓ We Offer</div>
+                                <div style="font-size:12px;font-weight:700;color:white;">Lines of Credit</div>
+                                <div style="font-size:12px;font-weight:700;color:white;">Working Capital</div>
+                            </div>
+                            <div style="background:rgba(100,116,139,0.08);border:1px solid rgba(100,116,139,0.2);border-radius:8px;padding:9px 12px;text-align:center;">
+                                <div style="font-size:9px;font-weight:900;text-transform:uppercase;color:#64748b;letter-spacing:0.08em;margin-bottom:3px;">✗ Not This</div>
+                                <div style="font-size:12px;font-weight:700;color:#94a3b8;">Government-Backed</div>
+                                <div style="font-size:12px;font-weight:700;color:#94a3b8;">SBA / Federal Loans</div>
+                            </div>
+                        </div>
+                        <div style="margin-top:10px;background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.2);border-radius:8px;padding:8px 12px;display:flex;align-items:center;gap:7px;">
+                            <i class="fas fa-arrow-right" style="color:#3b82f6;font-size:10px;flex-shrink:0;"></i>
+                            <span style="font-size:12px;font-weight:900;text-transform:uppercase;color:#60a5fa;letter-spacing:0.07em;">Go right back to qualifying questions</span>
+                        </div>
+                    </div>
+    </div>
+<div id="rb-panel-13" style="display:none;animation:fadeSlideIn 0.2s ease;">
+        <div style="font-family:Orbitron,sans-serif;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.12em;color:#f59e0b;margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+            <div style="width:8px;height:8px;border-radius:50%;background:#f59e0b;flex-shrink:0;"></div>
+            Pre-Qualification Pushback
+        </div>
+        <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:12px 16px;margin-bottom:12px;">
+            <div style="font-size:15px;font-weight:900;color:white;line-height:1.4;">"If I'm already pre-qualified, why do you need more questions?"</div>
+        </div>
+        <div style="background:rgba(245,158,11,0.05);border:1px solid rgba(245,158,11,0.18);border-radius:12px;padding:14px 16px;">
+                        <div style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;color:#f59e0b;margin-bottom:10px;display:flex;align-items:center;gap:6px;"><i class="fas fa-reply" style="font-size:10px;"></i> Your Response</div>
+                        <p style="font-size:15px;font-weight:700;color:white;font-style:italic;line-height:1.7;">"I completely understand how that sounds — pre-qualified simply means you meet the general criteria based on the basic info we have. These few questions make sure we match you with the right program and the lender most likely to approve you. If we skip this step, it could lead to delays or even a mismatch, and I want to make sure you get the best possible offer without wasting your time."</p>
+                        <div style="margin-top:10px;background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.2);border-radius:8px;padding:8px 12px;display:flex;align-items:center;gap:7px;">
+                            <i class="fas fa-arrow-right" style="color:#3b82f6;font-size:10px;flex-shrink:0;"></i>
+                            <span style="font-size:12px;font-weight:900;text-transform:uppercase;color:#60a5fa;letter-spacing:0.07em;">Go right back to qualifying questions</span>
+                        </div>
+                    </div>
+    </div>
+<div id="rb-panel-14" style="display:none;animation:fadeSlideIn 0.2s ease;">
+        <div style="font-family:Orbitron,sans-serif;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.12em;color:#0ea5e9;margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+            <div style="width:8px;height:8px;border-radius:50%;background:#0ea5e9;flex-shrink:0;"></div>
+            Unsolicited Outreach
+        </div>
+        <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:12px 16px;margin-bottom:12px;">
+            <div style="font-size:15px;font-weight:900;color:white;line-height:1.4;">"I didn't apply for a loan — who applied?"</div>
+        </div>
+        <div style="background:rgba(14,165,233,0.05);border:1px solid rgba(14,165,233,0.18);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;">
+                        <div style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;color:#0ea5e9;margin-bottom:2px;display:flex;align-items:center;gap:6px;"><i class="fas fa-reply" style="font-size:10px;"></i> Choose Your Response</div>
+                        <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px 14px;">
+                            <span style="font-size:9px;font-weight:900;text-transform:uppercase;color:#0ea5e9;letter-spacing:0.08em;">Option A</span>
+                            <p style="font-size:15px;font-weight:700;color:white;font-style:italic;line-height:1.7;margin-top:5px;">"No one applied on your behalf — your business information came through one of our financial partner networks. We reach out to business owners who appear to meet our criteria. You're not obligated to proceed, but since you're on the line, can I ask a few quick questions?"</p>
+                        </div>
+                        <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px 14px;">
+                            <span style="font-size:9px;font-weight:900;text-transform:uppercase;color:#0ea5e9;letter-spacing:0.08em;">Option B</span>
+                            <p style="font-size:15px;font-weight:700;color:white;font-style:italic;line-height:1.7;margin-top:5px;">"That's a great question — no application was submitted for you. We work with a network of data partners and your business details indicated you may qualify for funding. We're simply reaching out to verify eligibility."</p>
+                        </div>
+                        <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px 14px;">
+                            <span style="font-size:9px;font-weight:900;text-transform:uppercase;color:#0ea5e9;letter-spacing:0.08em;">Option C</span>
+                            <p style="font-size:15px;font-weight:700;color:white;font-style:italic;line-height:1.7;margin-top:5px;">"Nobody applied — we identified your business as a potential match through our partner network and reached out directly. There's no commitment here, I just need to verify a few things."</p>
+                        </div>
+                        <div style="background:rgba(234,179,8,0.08);border:1px solid rgba(234,179,8,0.25);border-radius:10px;padding:12px 14px;display:flex;align-items:flex-start;gap:10px;">
+                            <i class="fas fa-lightbulb" style="color:#eab308;flex-shrink:0;margin-top:2px;font-size:13px;"></i>
+                            <div>
+                                <p style="font-size:9px;font-weight:900;text-transform:uppercase;color:#eab308;letter-spacing:0.08em;margin-bottom:4px;">If They Say They DID Apply Before</p>
+                                <p style="font-size:15px;font-weight:700;color:white;font-style:italic;line-height:1.7;">"If you applied for a loan before, that's likely why we're reaching out to you."</p>
+                            </div>
+                        </div>
+                        <div style="background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.2);border-radius:8px;padding:8px 12px;display:flex;align-items:center;gap:7px;">
+                            <i class="fas fa-arrow-right" style="color:#3b82f6;font-size:10px;flex-shrink:0;"></i>
+                            <span style="font-size:12px;font-weight:900;text-transform:uppercase;color:#60a5fa;letter-spacing:0.07em;">Go right back to qualifying questions</span>
+                        </div>
+                    </div>
+    </div>
+<div id="rb-panel-15" style="display:none;animation:fadeSlideIn 0.2s ease;">
+        <div style="font-family:Orbitron,sans-serif;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.12em;color:#d946ef;margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+            <div style="width:8px;height:8px;border-radius:50%;background:#d946ef;flex-shrink:0;"></div>
+            Pre-Approval Confusion
+        </div>
+        <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:12px 16px;margin-bottom:12px;">
+            <div style="font-size:15px;font-weight:900;color:white;line-height:1.4;">"Your voicemail said I'm already approved."</div>
+        </div>
+        <div style="background:rgba(217,70,239,0.05);border:1px solid rgba(217,70,239,0.18);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;">
+                        <div style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;color:#d946ef;margin-bottom:2px;display:flex;align-items:center;gap:6px;"><i class="fas fa-reply" style="font-size:10px;"></i> Choose Your Response</div>
+                        <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px 14px;">
+                            <span style="font-size:9px;font-weight:900;text-transform:uppercase;color:#d946ef;letter-spacing:0.08em;">Option A</span>
+                            <p style="font-size:15px;font-weight:700;color:white;font-style:italic;line-height:1.7;margin-top:5px;">"I understand how that sounds — what that means is your business profile met our general criteria, which is why we reached out. Full approval happens after the senior advisor reviews your details. These questions just help us get you to the right program."</p>
+                        </div>
+                        <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px 14px;">
+                            <span style="font-size:9px;font-weight:900;text-transform:uppercase;color:#d946ef;letter-spacing:0.08em;">Option B</span>
+                            <p style="font-size:15px;font-weight:700;color:white;font-style:italic;line-height:1.7;margin-top:5px;">"Pre-approved simply means you cleared the first threshold based on basic info. The advisor confirms the actual offer — I just need to verify a couple of things so we match you with the right lender."</p>
+                        </div>
+                        <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px 14px;">
+                            <span style="font-size:9px;font-weight:900;text-transform:uppercase;color:#d946ef;letter-spacing:0.08em;">Option C</span>
+                            <p style="font-size:15px;font-weight:700;color:white;font-style:italic;line-height:1.7;margin-top:5px;">"Think of it like a pre-screen — your business appeared to qualify based on initial criteria. The senior advisor locks in the real numbers once I confirm your details. Can we take 2 minutes to do that now?"</p>
+                        </div>
+                        <div style="background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.2);border-radius:8px;padding:8px 12px;display:flex;align-items:center;gap:7px;">
+                            <i class="fas fa-arrow-right" style="color:#3b82f6;font-size:10px;flex-shrink:0;"></i>
+                            <span style="font-size:12px;font-weight:900;text-transform:uppercase;color:#60a5fa;letter-spacing:0.07em;">Go right back to qualifying questions</span>
+                        </div>
+                    </div>
+    </div>
+<div id="rb-panel-16" style="display:none;animation:fadeSlideIn 0.2s ease;">
+        <div style="font-family:Orbitron,sans-serif;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.12em;color:#22c55e;margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+            <div style="width:8px;height:8px;border-radius:50%;background:#22c55e;flex-shrink:0;"></div>
+            Location Question
+        </div>
+        <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:12px 16px;margin-bottom:12px;">
+            <div style="font-size:15px;font-weight:900;color:white;line-height:1.4;">"Where is your company located?"</div>
+        </div>
+        <div style="background:rgba(34,197,94,0.05);border:1px solid rgba(34,197,94,0.18);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;">
+                        <div style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;color:#22c55e;margin-bottom:2px;display:flex;align-items:center;gap:6px;"><i class="fas fa-reply" style="font-size:10px;"></i> Choose Your Response</div>
+                        <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px 14px;">
+                            <span style="font-size:9px;font-weight:900;text-transform:uppercase;color:#22c55e;letter-spacing:0.08em;">Option A</span>
+                            <p style="font-size:15px;font-weight:700;color:white;font-style:italic;line-height:1.7;margin-top:5px;">"We're based in California. We operate nationally and work with lenders across the country to match business owners with the right funding programs."</p>
+                        </div>
+                        <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px 14px;">
+                            <span style="font-size:9px;font-weight:900;text-transform:uppercase;color:#22c55e;letter-spacing:0.08em;">Option B</span>
+                            <p style="font-size:15px;font-weight:700;color:white;font-style:italic;line-height:1.7;margin-top:5px;">"Our offices are in California — we're a national operation so we work with business owners all across the U.S. through our lender network."</p>
+                        </div>
+                        <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px 14px;">
+                            <span style="font-size:9px;font-weight:900;text-transform:uppercase;color:#22c55e;letter-spacing:0.08em;">Option C</span>
+                            <p style="font-size:15px;font-weight:700;color:white;font-style:italic;line-height:1.7;margin-top:5px;">"California-based. We work with business owners nationwide — the senior advisor can give you the full details on our operations when you're connected."</p>
+                        </div>
+                        <div style="background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.2);border-radius:8px;padding:8px 12px;display:flex;align-items:center;gap:7px;">
+                            <i class="fas fa-arrow-right" style="color:#3b82f6;font-size:10px;flex-shrink:0;"></i>
+                            <span style="font-size:12px;font-weight:900;text-transform:uppercase;color:#60a5fa;letter-spacing:0.07em;">Go right back to qualifying questions</span>
+                        </div>
+                    </div>
+    </div>
+<div id="rb-panel-17" style="display:none;animation:fadeSlideIn 0.2s ease;">
+        <div style="font-family:Orbitron,sans-serif;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.12em;color:#fb923c;margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+            <div style="width:8px;height:8px;border-radius:50%;background:#fb923c;flex-shrink:0;"></div>
+            Business Name Challenge
+        </div>
+        <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:12px 16px;margin-bottom:12px;">
+            <div style="font-size:15px;font-weight:900;color:white;line-height:1.4;">"What's the name of my business / how did you approve me without knowing it?"</div>
+        </div>
+        <div style="background:rgba(251,146,60,0.05);border:1px solid rgba(251,146,60,0.18);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;">
+                        <div style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;color:#fb923c;margin-bottom:2px;display:flex;align-items:center;gap:6px;"><i class="fas fa-reply" style="font-size:10px;"></i> Choose Your Response</div>
+                        <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px 14px;">
+                            <span style="font-size:9px;font-weight:900;text-transform:uppercase;color:#fb923c;letter-spacing:0.08em;">Option A</span>
+                            <p style="font-size:15px;font-weight:700;color:white;font-style:italic;line-height:1.7;margin-top:5px;">"That's exactly why I'm calling — we have some basic information but we need to verify the details directly with you, including your business name. That's what these questions are for, so we can confirm everything is accurate before connecting you."</p>
+                        </div>
+                        <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px 14px;">
+                            <span style="font-size:9px;font-weight:900;text-transform:uppercase;color:#fb923c;letter-spacing:0.08em;">Option B</span>
+                            <p style="font-size:15px;font-weight:700;color:white;font-style:italic;line-height:1.7;margin-top:5px;">"Great question — we pulled your contact info from our partner network, but we always verify directly with the owner to make sure everything is correct. So let's start there — what's the name of your business?"</p>
+                        </div>
+                        <div style="background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.2);border-radius:8px;padding:8px 12px;display:flex;align-items:center;gap:7px;">
+                            <i class="fas fa-arrow-right" style="color:#3b82f6;font-size:10px;flex-shrink:0;"></i>
+                            <span style="font-size:12px;font-weight:900;text-transform:uppercase;color:#60a5fa;letter-spacing:0.07em;">Go right back to qualifying questions</span>
+                        </div>
+                    </div>
+    </div>
+<div id="rb-panel-18" style="display:none;animation:fadeSlideIn 0.2s ease;">
+        <div style="font-family:Orbitron,sans-serif;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.12em;color:#38bdf8;margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+            <div style="width:8px;height:8px;border-radius:50%;background:#38bdf8;flex-shrink:0;"></div>
+            Missing Business Name
+        </div>
+        <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:12px 16px;margin-bottom:12px;">
+            <div style="font-size:15px;font-weight:900;color:white;line-height:1.4;">"How come you don't know my business name?"</div>
+        </div>
+        <div style="background:rgba(56,189,248,0.05);border:1px solid rgba(56,189,248,0.18);border-radius:12px;padding:14px 16px;">
+                        <div style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;color:#38bdf8;margin-bottom:8px;display:flex;align-items:center;gap:6px;"><i class="fas fa-reply" style="font-size:10px;"></i> Your Response</div>
+                        <p style="font-size:16px;font-weight:700;color:white;font-style:italic;line-height:1.7;">"Your pre-qualification file came through with your contact details, but the business name wasn't included. That's exactly why I'm calling — to get that confirmed so we can move you forward and lock in your funding."</p>
+                        <div style="margin-top:10px;background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.2);border-radius:8px;padding:8px 12px;display:flex;align-items:center;gap:7px;">
+                            <i class="fas fa-arrow-right" style="color:#3b82f6;font-size:10px;flex-shrink:0;"></i>
+                            <span style="font-size:12px;font-weight:900;text-transform:uppercase;color:#60a5fa;letter-spacing:0.07em;">Go right back to qualifying questions</span>
+                        </div>
+                    </div>
     </div>
 
-    <!-- PRANK — Edit: html/views/prank.html | js/prank.js -->
-    <div id="prank-view" style="display:none;">
-      <div id="part-prank"></div>
+        </div>
+
+        <!-- Tip bar -->
+        <div style="background:rgba(59,130,246,0.07);border:1px solid rgba(59,130,246,0.2);border-radius:14px;padding:14px 18px;display:flex;align-items:flex-start;gap:10px;">
+            <i class="fas fa-lightbulb" style="color:#3b82f6;flex-shrink:0;margin-top:2px;font-size:14px;"></i>
+            <p style="font-size:12px;font-weight:700;color:#93c5fd;line-height:1.65;">Stay calm, stay brief. Acknowledge their concern, give the short answer, and redirect back to qualification questions immediately.</p>
+        </div>
     </div>
 
-    <!-- MONTHLY — Edit: html/views/monthly.html | js/monthly.js -->
-    <div id="monthly-view" style="display:none;">
-      <div id="part-monthly"></div>
+    <!-- PRANK TAB -->
+    <div id="prank-view" class="hidden space-y-5 px-2 pb-20">
+        <style>
+            @media(min-width:768px){.prank-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}.prank-grid-1{display:grid;grid-template-columns:1fr;gap:16px;}}
+            @media(max-width:767px){.prank-grid-2{display:flex;flex-direction:column;gap:14px;}.prank-grid-1{display:flex;flex-direction:column;gap:14px;}}
+        </style>
+        <div style="border-radius:20px;overflow:hidden;border:2px solid #22c55e;box-shadow:0 0 30px rgba(34,197,94,0.2);">
+            <div style="background:linear-gradient(135deg,rgba(34,197,94,0.25),rgba(21,128,61,0.35));padding:16px 22px;position:relative;overflow:hidden;"><div style="position:absolute;inset:0;background:repeating-linear-gradient(45deg,transparent,transparent 10px,rgba(34,197,94,0.05) 10px,rgba(34,197,94,0.05) 20px);"></div><div style="position:relative;display:flex;align-items:center;gap:12px;"><span style="font-size:1.7rem;">🎯</span><div><div style="font-family:Orbitron,sans-serif;font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.12em;color:#22c55e;margin-bottom:2px;">Pro Move — Use When Unsure</div><div style="font-family:Orbitron,sans-serif;font-size:15px;font-weight:900;text-transform:uppercase;color:white;">Supervisor Test — They'll Give Up</div></div></div></div>
+            <div style="background:rgba(2,6,23,0.85);padding:16px 22px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
+                <div style="background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.25);border-radius:12px;padding:12px 14px;"><p style="color:#22c55e;font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;">Step 1 — Say to the Customer</p><p style="color:white;font-size:12px;font-weight:700;font-style:italic;line-height:1.5;">"No problem — just let me get my supervisor on the line, one moment."</p><p style="color:#64748b;font-size:10px;margin-top:6px;">Stay calm. Act like it's totally normal. Don't tip them off.</p></div>
+                <div style="background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.25);border-radius:12px;padding:12px 14px;"><p style="color:#22c55e;font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;">Step 2 — Come Get Me Directly</p><p style="color:#cbd5e1;font-size:12px;font-weight:600;line-height:1.5;">Put them on hold and come find me. Don't blind transfer — tell me the situation first so I know before I pick up.</p></div>
+                <div style="background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.25);border-radius:12px;padding:12px 14px;"><p style="color:#22c55e;font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;">Step 3 — Hand Off</p><p style="color:white;font-size:12px;font-weight:700;font-style:italic;line-height:1.5;">"I'm going to hand you over to my supervisor now."</p><p style="color:#64748b;font-size:10px;margin-top:6px;">Prank callers hang up. Real customers stay on — that's how you know.</p></div>
+            </div>
+            <div style="background:rgba(2,6,23,0.85);padding:0 22px 14px;display:flex;"><div style="background:rgba(234,179,8,0.08);border:1px solid rgba(234,179,8,0.2);border-radius:8px;padding:8px 14px;display:flex;align-items:center;gap:8px;width:100%;"><span>💡</span><span style="color:#fde68a;font-size:12px;font-weight:700;">If they hang up the moment I get on — it was a prank. Move to your next call. You did the right thing.</span></div></div>
+        </div>
+        <div class="prank-grid-2">
+        <!-- NEW: Justin Loan Portal Scam -->
+        <div style="border-radius:20px;overflow:hidden;border:3px solid #f59e0b;box-shadow:0 0 30px rgba(245,158,11,0.3);">
+            <div style="background:linear-gradient(135deg,rgba(245,158,11,0.35),rgba(180,83,9,0.5));padding:16px 18px;position:relative;overflow:hidden;">
+                <div style="position:absolute;inset:0;background:repeating-linear-gradient(45deg,transparent,transparent 10px,rgba(245,158,11,0.07) 10px,rgba(245,158,11,0.07) 20px);"></div>
+                <div style="position:relative;display:flex;align-items:center;gap:10px;">
+                    <span style="font-size:1.5rem;">🎭</span>
+                    <div>
+                        <div style="font-family:Orbitron,sans-serif;font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.12em;color:#f59e0b;margin-bottom:2px;">⚠️ Active Scam Alert</div>
+                        <div style="font-family:Orbitron,sans-serif;font-size:13px;font-weight:900;text-transform:uppercase;color:white;">"Justin" Fake Loan Portal</div>
+                    </div>
+                </div>
+            </div>
+            <div style="background:rgba(2,6,23,0.85);padding:14px 18px;display:flex;flex-direction:column;gap:8px;">
+                <p style="color:#fde68a;font-size:12px;font-weight:600;line-height:1.6;">A customer calls in saying <span style="color:white;font-weight:900;">"Justin"</span> told them they have a loan and need to log into a <span style="color:white;font-weight:900;">portal</span> to make a payment or collect funds. This is a scam — no one named Justin works here in that capacity, and we do NOT direct customers to external portals to collect loan funds.</p>
+                <div style="display:flex;align-items:center;gap:8px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.25);border-radius:8px;padding:8px 12px;">
+                    <i class="fas fa-flag" style="color:#f59e0b;flex-shrink:0;font-size:11px;"></i>
+                    <span style="color:#fde68a;font-size:12px;font-weight:700;">"Justin said I have a loan and need to log in"</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.25);border-radius:8px;padding:8px 12px;">
+                    <i class="fas fa-flag" style="color:#f59e0b;flex-shrink:0;font-size:11px;"></i>
+                    <span style="color:#fde68a;font-size:12px;font-weight:700;">"They told me to log into a portal to get my money"</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.25);border-radius:8px;padding:8px 12px;">
+                    <i class="fas fa-flag" style="color:#f59e0b;flex-shrink:0;font-size:11px;"></i>
+                    <span style="color:#fde68a;font-size:12px;font-weight:700;">"I need to log in to make a payment or receive funds"</span>
+                </div>
+                <div style="background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.25);border-radius:8px;padding:10px 12px;display:flex;align-items:flex-start;gap:8px;margin-top:2px;">
+                    <i class="fas fa-reply" style="color:#22c55e;flex-shrink:0;font-size:12px;margin-top:2px;"></i>
+                    <p style="color:#bbf7d0;font-size:13px;font-weight:700;line-height:1.5;font-style:italic;">"I believe you have the wrong number, sir."</p>
+                </div>
+                <div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-radius:8px;padding:10px 12px;display:flex;align-items:flex-start;gap:8px;">
+                    <i class="fas fa-shield-alt" style="color:#ef4444;flex-shrink:0;font-size:12px;margin-top:2px;"></i>
+                    <p style="color:#fca5a5;font-size:11px;font-weight:700;line-height:1.5;">If the prank number keeps calling, pass the number to your team leader.</p>
+                </div>
+                <p style="color:#475569;font-size:10px;font-weight:900;text-transform:uppercase;text-align:center;margin-top:2px;">End call professionally &amp; move on.</p>
+            </div>
+        </div>
+
+        <!-- NEW: Money Laundering / Government Ties -->
+        <div style="border-radius:20px;overflow:hidden;border:3px solid #8b5cf6;box-shadow:0 0 30px rgba(139,92,246,0.3);">
+            <div style="background:linear-gradient(135deg,rgba(139,92,246,0.35),rgba(91,33,182,0.5));padding:16px 18px;position:relative;overflow:hidden;">
+                <div style="position:absolute;inset:0;background:repeating-linear-gradient(45deg,transparent,transparent 10px,rgba(139,92,246,0.07) 10px,rgba(139,92,246,0.07) 20px);"></div>
+                <div style="position:relative;display:flex;align-items:center;gap:10px;">
+                    <span style="font-size:1.5rem;">🏛️</span>
+                    <div>
+                        <div style="font-family:Orbitron,sans-serif;font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.12em;color:#a78bfa;margin-bottom:2px;">⚠️ Criminal Alert</div>
+                        <div style="font-family:Orbitron,sans-serif;font-size:13px;font-weight:900;text-transform:uppercase;color:white;">Money Laundering — Gov. Ties</div>
+                    </div>
+                </div>
+            </div>
+            <div style="background:rgba(2,6,23,0.85);padding:14px 18px;display:flex;flex-direction:column;gap:8px;">
+                <p style="color:#c4b5fd;font-size:12px;font-weight:600;line-height:1.6;">If a caller claims they have <span style="color:white;font-weight:900;">ties with the government</span>, are moving funds "on behalf of" an agency, or the situation feels like they're trying to legitimize large suspicious transfers — this is a <span style="color:white;font-weight:900;">money laundering red flag</span>. End the call and report it.</p>
+                <!-- What is money laundering -->
+                <div style="background:rgba(139,92,246,0.08);border:1px solid rgba(139,92,246,0.25);border-radius:10px;padding:12px 14px;">
+                    <p style="font-size:9px;font-weight:900;text-transform:uppercase;color:#a78bfa;letter-spacing:0.08em;margin-bottom:6px;">💡 What Is Money Laundering?</p>
+                    <p style="font-size:12px;font-weight:600;color:#cbd5e1;line-height:1.65;">Money laundering is the process of making illegally obtained money appear legitimate. Criminals run "dirty" money through businesses, loans, or financial systems to disguise its origin. Claiming government ties is a common tactic to make the transaction seem official and bypass scrutiny.</p>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;background:rgba(139,92,246,0.08);border:1px solid rgba(139,92,246,0.2);border-radius:8px;padding:8px 12px;">
+                    <i class="fas fa-flag" style="color:#8b5cf6;flex-shrink:0;font-size:11px;"></i>
+                    <span style="color:#c4b5fd;font-size:12px;font-weight:700;">"I work with the government / federal agency"</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;background:rgba(139,92,246,0.08);border:1px solid rgba(139,92,246,0.2);border-radius:8px;padding:8px 12px;">
+                    <i class="fas fa-flag" style="color:#8b5cf6;flex-shrink:0;font-size:11px;"></i>
+                    <span style="color:#c4b5fd;font-size:12px;font-weight:700;">"These funds are authorized / government-backed"</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;background:rgba(139,92,246,0.08);border:1px solid rgba(139,92,246,0.2);border-radius:8px;padding:8px 12px;">
+                    <i class="fas fa-flag" style="color:#8b5cf6;flex-shrink:0;font-size:11px;"></i>
+                    <span style="color:#c4b5fd;font-size:12px;font-weight:700;">Moving unusually large sums through a new or vague business</span>
+                </div>
+                <div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-radius:8px;padding:10px 12px;display:flex;align-items:flex-start;gap:8px;margin-top:2px;">
+                    <i class="fas fa-shield-alt" style="color:#ef4444;flex-shrink:0;font-size:12px;margin-top:2px;"></i>
+                    <p style="color:#fca5a5;font-size:11px;font-weight:700;line-height:1.5;">This is a prank. End the call professionally and move on to the next one. If the number keeps coming in, pass it to your team leader.</p>
+                </div>
+                <p style="color:#475569;font-size:10px;font-weight:900;text-transform:uppercase;text-align:center;margin-top:2px;">End call professionally &amp; move on.</p>
+            </div>
+        </div>
+        </div>
+
+        <div class="prank-grid-2">
+            <div style="border-radius:20px;overflow:hidden;border:3px solid #ef4444;box-shadow:0 0 30px rgba(239,68,68,0.3);"><div style="background:linear-gradient(135deg,rgba(239,68,68,0.35),rgba(185,28,28,0.5));padding:16px 18px;position:relative;overflow:hidden;"><div style="position:absolute;inset:0;background:repeating-linear-gradient(45deg,transparent,transparent 10px,rgba(239,68,68,0.07) 10px,rgba(239,68,68,0.07) 20px);"></div><div style="position:relative;display:flex;align-items:center;gap:10px;"><span style="font-size:1.5rem;">🇲🇽</span><div><div style="font-family:Orbitron,sans-serif;font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.12em;color:#ef4444;margin-bottom:2px;">⚠️ Active Ongoing Scam</div><div style="font-family:Orbitron,sans-serif;font-size:13px;font-weight:900;text-transform:uppercase;color:white;">Mexico / Fund Transfer</div></div></div></div><div style="background:rgba(2,6,23,0.85);padding:14px 18px;display:flex;flex-direction:column;gap:8px;"><p style="color:#fca5a5;font-size:12px;font-weight:600;line-height:1.6;">If anyone <span style="color:white;font-weight:900;">mentions Mexico</span>, asks to <span style="color:white;font-weight:900;">send funds to Mexico</span>, or requests any <span style="color:white;font-weight:900;">international money transfer</span> — confirmed scam. End call professionally &amp; move on.</p><div style="display:flex;align-items:center;gap:8px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:8px;padding:8px 12px;"><i class="fas fa-flag" style="color:#ef4444;flex-shrink:0;font-size:11px;"></i><span style="color:#fca5a5;font-size:12px;font-weight:700;">"Can you send the funds to Mexico?"</span></div><div style="display:flex;align-items:center;gap:8px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:8px;padding:8px 12px;"><i class="fas fa-flag" style="color:#ef4444;flex-shrink:0;font-size:11px;"></i><span style="color:#fca5a5;font-size:12px;font-weight:700;">Mexico as business location or fund destination</span></div><div style="display:flex;align-items:center;gap:8px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:8px;padding:8px 12px;"><i class="fas fa-flag" style="color:#ef4444;flex-shrink:0;font-size:11px;"></i><span style="color:#fca5a5;font-size:12px;font-weight:700;">Wire transfer or cash to international account</span></div><p style="color:#475569;font-size:10px;font-weight:900;text-transform:uppercase;text-align:center;margin-top:2px;">Do not transfer under any circumstances.</p></div></div>
+            <div style="border-radius:16px;overflow:hidden;border:2px solid #f97316;"><div style="background:linear-gradient(135deg,rgba(249,115,22,0.25),rgba(194,65,12,0.35));padding:16px 18px;display:flex;align-items:center;gap:10px;"><span style="font-size:1.4rem;">🔞</span><div><div style="font-family:Orbitron,sans-serif;font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.12em;color:#f97316;">Instant Disqualifier</div><div style="font-family:Orbitron,sans-serif;font-size:13px;font-weight:900;text-transform:uppercase;color:white;">OnlyFans = Prank. Full Stop.</div></div></div><div style="background:rgba(2,6,23,0.85);padding:14px 18px;display:flex;flex-direction:column;gap:8px;"><p style="color:#cbd5e1;font-size:12px;font-weight:600;line-height:1.6;">If anyone gives <span style="color:white;font-weight:900;">"OnlyFans"</span> as their business name — end the call professionally.</p><div style="display:flex;align-items:center;gap:8px;background:rgba(249,115,22,0.08);border:1px solid rgba(249,115,22,0.25);border-radius:8px;padding:8px 12px;"><i class="fas fa-flag" style="color:#f97316;flex-shrink:0;font-size:11px;"></i><span style="color:#fed7aa;font-size:12px;font-weight:700;">"My business is OnlyFans"</span></div><div style="display:flex;align-items:center;gap:8px;background:rgba(249,115,22,0.08);border:1px solid rgba(249,115,22,0.25);border-radius:8px;padding:8px 12px;"><i class="fas fa-flag" style="color:#f97316;flex-shrink:0;font-size:11px;"></i><span style="color:#fed7aa;font-size:12px;font-weight:700;">"I'm a content creator on OnlyFans"</span></div><p style="color:#475569;font-size:10px;font-weight:900;text-transform:uppercase;text-align:center;margin-top:2px;">End call professionally &amp; move on immediately.</p></div></div>
+        </div>
+        <div style="padding:4px 2px 0;"><p style="font-family:Orbitron,sans-serif;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:0.15em;color:#a855f7;">🚨 Prank Caller Red Flags</p><p style="font-size:10px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:0.08em;margin-top:2px;">Spot these signs early — end the call professionally and move on</p></div>
+        <div class="prank-grid-2">
+            <div class="glass p-4 rounded-2xl border border-purple-900/40 bg-purple-900/10"><p class="text-purple-300 font-black uppercase text-xs tracking-widest mb-2">1. Yes to Everything</p><p class="text-slate-300 text-sm">Real owners push back, ask questions, or pause to think. If someone says <span class="text-white font-black">"yes"</span> to every question instantly — they're not real.</p><p class="text-yellow-400 font-black text-xs mt-2 uppercase">Watch for: robotic "yes yes yes," zero hesitation on every answer</p></div>
+            <div class="glass p-4 rounded-2xl border border-purple-900/40 bg-purple-900/10"><p class="text-purple-300 font-black uppercase text-xs tracking-widest mb-2">2. Generic or Fake Business Name</p><p class="text-slate-300 text-sm">Vague names like <span class="text-white font-black">"My Company," "Business LLC,"</span> or names that change when you repeat them back are fake.</p><p class="text-yellow-400 font-black text-xs mt-2 uppercase">Watch for: "um… it's like… my business," name changes when repeated</p></div>
+        </div>
+        <div class="prank-grid-2">
+            <div class="glass p-4 rounded-2xl border border-purple-900/40 bg-purple-900/10"><p class="text-purple-300 font-black uppercase text-xs tracking-widest mb-2">3. Asking for Money / Reversing the Script</p><p class="text-slate-300 text-sm">If they flip the call — <span class="text-white font-black">"So how much will YOU give me?"</span> before you've even qualified them.</p><p class="text-yellow-400 font-black text-xs mt-2 uppercase">Watch for: "just send it," "how fast can I get it," "give me the max," "I need it now," "I need it today," "I need it in 24 hours"</p></div>
+            <div class="glass p-4 rounded-2xl border border-purple-900/40 bg-purple-900/10"><p class="text-purple-300 font-black uppercase text-xs tracking-widest mb-2">4. Laughing, Whispering, or Coached</p><p class="text-slate-300 text-sm">Giggling, muffled laughter, or someone <span class="text-white font-black">whispering answers</span> in the background means group prank.</p><p class="text-yellow-400 font-black text-xs mt-2 uppercase">Watch for: echoing, whispering, covering the phone, coached replies</p></div>
+        </div>
+        <div class="prank-grid-2">
+            <div class="glass p-4 rounded-2xl border border-purple-900/40 bg-purple-900/10"><p class="text-purple-300 font-black uppercase text-xs tracking-widest mb-2">5. Inconsistent or Absurd Details</p><p class="text-slate-300 text-sm">Revenue of <span class="text-white font-black">$50 million</span> but open only <span class="text-white font-black">2 months</span>? Real owners are consistent because they live their business every day.</p><p class="text-yellow-400 font-black text-xs mt-2 uppercase">Watch for: contradictory info, impossible numbers, changing their story</p></div>
+            <div class="glass p-4 rounded-2xl border border-purple-900/40 bg-purple-900/10"><p class="text-purple-300 font-black uppercase text-xs tracking-widest mb-2">6. Refuses to Stay On Topic</p><p class="text-slate-300 text-sm">Prankers <span class="text-white font-black">derail the call</span> with jokes and random questions.</p><p class="text-yellow-400 font-black text-xs mt-2 uppercase">Watch for: tangents, jokes about the call, refusing to answer directly</p></div>
+        </div>
+        <div class="prank-grid-2">
+            <div class="glass p-4 rounded-2xl border border-purple-900/40 bg-purple-900/10"><p class="text-purple-300 font-black uppercase text-xs tracking-widest mb-2">7. Suspicious Tone &amp; Energy</p><p class="text-slate-300 text-sm">Real owners are <span class="text-white font-black">slightly guarded, professional, measured</span>. Prank callers sound <span class="text-white font-black">too casual, overly excited, or flat and robotic</span>.</p><p class="text-yellow-400 font-black text-xs mt-2 uppercase">Watch for: giggling, overly eager, robotic monotone, acting a role</p></div>
+            <div class="glass p-4 rounded-2xl border border-purple-900/40 bg-purple-900/10"><p class="text-purple-300 font-black uppercase text-xs tracking-widest mb-2">8. "Justin Told Me" / Asks About Portal</p><p class="text-slate-300 text-sm">If a caller says someone named <span class="text-white font-black">"Justin"</span> told them they have a loan and to <span class="text-white font-black">log into a portal</span> to make a payment or collect funds — this is a scam script, not a real customer.</p><p class="text-yellow-400 font-black text-xs mt-2 uppercase">Watch for: "I was told to log in," "where's the portal," "Justin said I'm approved"</p></div>
+        </div>
+        <div class="prank-grid-2">
+            <div class="glass p-4 rounded-2xl border border-purple-900/40 bg-purple-900/10"><p class="text-purple-300 font-black uppercase text-xs tracking-widest mb-2">9. Claims Government or Official Ties</p><p class="text-slate-300 text-sm">Callers who claim <span class="text-white font-black">government connections</span> or say funds are "federally authorized" to pressure you into bypassing normal process are attempting fraud or <span class="text-white font-black">money laundering</span>.</p><p class="text-yellow-400 font-black text-xs mt-2 uppercase">Watch for: "federal agency," "government authorized," "official program," "ties to [agency]"</p></div>
+            <div class="glass p-4 rounded-2xl border border-yellow-900/40 bg-yellow-900/5"><p class="text-yellow-400 font-black uppercase text-xs tracking-widest mb-3">🔑 Instant Prank Keywords</p><div style="display:flex;flex-wrap:wrap;gap:5px;"><span style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);border-radius:20px;padding:2px 9px;font-size:10px;font-weight:700;color:#fca5a5;">"Send it to Mexico"</span><span style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);border-radius:20px;padding:2px 9px;font-size:10px;font-weight:700;color:#fca5a5;">"Wire the money"</span><span style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);border-radius:20px;padding:2px 9px;font-size:10px;font-weight:700;color:#fca5a5;">"Give me the cash"</span><span style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);border-radius:20px;padding:2px 9px;font-size:10px;font-weight:700;color:#fca5a5;">"I need it today"</span><span style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);border-radius:20px;padding:2px 9px;font-size:10px;font-weight:700;color:#fca5a5;">"How much can you give me?"</span><span style="background:rgba(234,179,8,0.15);border:1px solid rgba(234,179,8,0.3);border-radius:20px;padding:2px 9px;font-size:10px;font-weight:700;color:#fde68a;">"Yeah whatever you need"</span><span style="background:rgba(234,179,8,0.15);border:1px solid rgba(234,179,8,0.3);border-radius:20px;padding:2px 9px;font-size:10px;font-weight:700;color:#fde68a;">"Just approve me"</span><span style="background:rgba(234,179,8,0.15);border:1px solid rgba(234,179,8,0.3);border-radius:20px;padding:2px 9px;font-size:10px;font-weight:700;color:#fde68a;">"Can you skip that part?"</span><span style="background:rgba(139,92,246,0.15);border:1px solid rgba(139,92,246,0.3);border-radius:20px;padding:2px 9px;font-size:10px;font-weight:700;color:#c4b5fd;">"Justin told me I'm approved"</span><span style="background:rgba(139,92,246,0.15);border:1px solid rgba(139,92,246,0.3);border-radius:20px;padding:2px 9px;font-size:10px;font-weight:700;color:#c4b5fd;">"Where's the portal to log in?"</span><span style="background:rgba(139,92,246,0.15);border:1px solid rgba(139,92,246,0.3);border-radius:20px;padding:2px 9px;font-size:10px;font-weight:700;color:#c4b5fd;">"Government authorized"</span><span style="background:rgba(139,92,246,0.15);border:1px solid rgba(139,92,246,0.3);border-radius:20px;padding:2px 9px;font-size:10px;font-weight:700;color:#c4b5fd;">"Federal ties / agency"</span></div></div>
+        </div>
+        <div class="glass p-6 rounded-3xl border-l-8 border-l-blue-400 bg-blue-500/5">
+            <h3 class="header-font text-sm md:text-xl font-black text-blue-400 uppercase mb-2 italic">🎙️ Tone &amp; Voice Tells</h3>
+            <p class="text-xs text-slate-500 uppercase font-black tracking-widest mb-4">Real owner vs. prank caller — side by side</p>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <div style="background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.25);border-radius:12px;padding:14px;"><p class="text-green-400 font-black text-xs uppercase tracking-widest mb-3">✅ Real Owner Sounds Like</p><ul class="space-y-2 text-slate-300 text-xs font-semibold"><li>• Slightly busy or distracted</li><li>• Asks "what is this for exactly?"</li><li>• Pauses to recall their revenue</li><li>• States business name confidently</li><li>• Skeptical but willing to listen</li><li>• Professional, measured tone</li><li>• Asks about process / next steps</li><li>• Background sounds like a real workplace</li></ul></div>
+                <div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-radius:12px;padding:14px;"><p class="text-red-400 font-black text-xs uppercase tracking-widest mb-3">🚨 Prank Caller Sounds Like</p><ul class="space-y-2 text-slate-300 text-xs font-semibold"><li>• Too casual or overly excited</li><li>• Agrees to everything instantly</li><li>• Never hesitates on any answer</li><li>• Gives absurd or vague business name</li><li>• Giggles or sounds entertained</li><li>• Flat robotic tone, reading a script</li><li>• Keeps pushing for the money amount</li><li>• Background sounds like a group or party</li></ul></div>
+            </div>
+            <p style="color:#475569;font-size:10px;font-weight:900;text-transform:uppercase;text-align:center;margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.05);">End the call: <span style="color:white;">"Thank you for your time, we're not able to proceed. Have a great day."</span></p>
+        </div>
     </div>
 
-    <!-- TRIVIA — Edit: html/views/trivia.html | js/trivia.js | css/trivia.css -->
-    <div id="trivia-view" style="display:none;">
-      <div id="part-trivia"></div>
+    <!-- MONTHLY PERFORMANCE VIEW -->
+    <div id="monthly-view" class="hidden px-2 pb-20 space-y-5">
+      <div class="glass p-6 rounded-3xl" style="border-top:4px solid #a78bfa;">
+        <div style="font-family:'Orbitron',sans-serif;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:0.15em;color:#a78bfa;margin-bottom:4px;">📅 Monthly Overview</div>
+        <div id="monthly-view-title" style="font-family:'Orbitron',sans-serif;font-size:20px;font-weight:900;color:white;text-transform:uppercase;margin-bottom:12px;">Month</div>
+        <div id="monthly-view-body" style="color:#94a3b8;font-size:13px;font-weight:700;text-align:center;padding:40px 0;">
+          <div style="font-size:40px;margin-bottom:12px;">📊</div>
+          <div>Monthly stats will appear here.</div>
+          <div style="font-size:11px;color:#475569;margin-top:6px;">Data pulled from your Google Sheet attendance & performance records.</div>
+        </div>
+      </div>
     </div>
 
-    <!-- ONLINE / NADIA ADMIN — Edit: html/views/online.html | js/online.js | css/online.css -->
-    <div id="online-view" style="display:none;">
-      <div id="part-online"></div>
+    <!-- TRIVIA TAB -->
+    <div id="trivia-view" class="hidden space-y-4 px-2 pb-20">
+
+      <!-- Header banner -->
+      <div class="trivia-wrap" style="padding:0;">
+        <div style="background:linear-gradient(135deg,rgba(255,229,0,0.12),rgba(255,107,0,0.1),rgba(255,45,120,0.08));padding:20px 22px;position:relative;">
+          <div style="position:relative;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+            <div>
+              <div style="font-family:'Orbitron',sans-serif;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.18em;color:#FFE500;margin-bottom:4px;">🎮 Training Mode</div>
+              <div style="font-family:'Lilita One',cursive;font-size:22px;color:white;line-height:1.1;">TRIVIA BLITZ</div>
+              <div id="trivia-round-badge" style="font-size:12px;font-weight:700;color:#FF6B00;margin-top:4px;">⏳ Loading round...</div>
+            </div>
+            <!-- Countdown to next round -->
+            <div id="trivia-countdown-bar" style="background:rgba(0,0,0,0.4);border:1px solid rgba(255,229,0,0.25);border-radius:14px;padding:10px 16px;text-align:center;min-width:110px;">
+              <div style="font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;color:#64748b;margin-bottom:4px;">Next Round In</div>
+              <div id="trivia-next-countdown" style="font-family:'Orbitron',sans-serif;font-size:22px;font-weight:900;color:#FFE500;letter-spacing:0.05em;">--:--</div>
+            </div>
+          </div>
+        </div>
+        <!-- Progress bar -->
+        <div style="height:4px;background:rgba(255,255,255,0.06);">
+          <div id="trivia-progress" style="height:100%;width:0%;background:linear-gradient(90deg,#FFE500,#FF6B00,#FF2D78);transition:width 0.4s ease;border-radius:0 2px 2px 0;"></div>
+        </div>
+      </div>
+
+      <!-- NAME SCREEN -->
+      <div id="trivia-name-screen" class="trivia-wrap" style="padding:28px 22px;text-align:center;">
+        <div style="font-size:48px;margin-bottom:8px;">🧠</div>
+        <div style="font-family:'Lilita One',cursive;font-size:20px;color:white;margin-bottom:6px;">Ready to Test Your Knowledge?</div>
+        <p style="font-size:13px;color:#475569;font-weight:600;margin-bottom:20px;line-height:1.6;">Questions are generated from the playbook, rebuttals & prank training — every round is different. Click to answer — no typing needed!</p>
+        <input id="trivia-name-input" type="text" placeholder="Your name (optional)" maxlength="30"
+          style="width:100%;max-width:300px;background:rgba(255,255,255,0.06);border:2px solid rgba(255,229,0,0.3);border-radius:12px;padding:12px 16px;color:white;font-family:'Boogaloo',cursive;font-size:16px;text-align:center;margin-bottom:16px;outline:none;display:block;margin-left:auto;margin-right:auto;" />
+        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+          <button onclick="startTrivia(false)" style="background:linear-gradient(135deg,#FFE500,#FF6B00);border:none;border-radius:14px;padding:14px 28px;font-family:'Lilita One',cursive;font-size:16px;color:#000;cursor:pointer;letter-spacing:0.05em;box-shadow:0 4px 20px rgba(255,229,0,0.3);transition:transform 0.15s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">⚡ START BLITZ</button>
+          <button onclick="startTrivia(true)" style="background:rgba(255,255,255,0.05);border:2px solid rgba(255,255,255,0.1);border-radius:14px;padding:14px 22px;font-family:'Boogaloo',cursive;font-size:15px;color:#94a3b8;cursor:pointer;transition:transform 0.15s;" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'">👤 Play Anonymous</button>
+        </div>
+        <!-- Leaderboard -->
+        <div style="margin-top:28px;border-top:1px solid rgba(255,255,255,0.06);padding-top:20px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+            <div style="font-family:'Orbitron',sans-serif;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.12em;color:#FFE500;">🏆 All Players — <span id="trivia-lb-round">Today</span></div>
+            <div style="font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.08em;color:#475569;" id="trivia-lb-count"></div>
+          </div>
+          <div id="trivia-leaderboard"></div>
+        </div>
+      </div>
+
+      <!-- LOADING SCREEN -->
+      <div id="trivia-loading-screen" class="trivia-wrap hidden" style="padding:50px 22px;text-align:center;">
+        <div style="font-size:48px;margin-bottom:14px;animation:spin 1.5s linear infinite;display:inline-block;">⚡</div>
+        <div style="font-family:'Lilita One',cursive;font-size:18px;color:white;margin-bottom:8px;">Generating Your Questions...</div>
+        <p style="font-size:12px;color:#475569;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:20px;">Reading the playbook & building your challenge</p>
+        <div style="background:rgba(255,229,0,0.06);border:1px solid rgba(255,229,0,0.2);border-radius:12px;padding:14px 18px;">
+          <div style="font-size:9px;font-weight:900;text-transform:uppercase;color:#FFE500;letter-spacing:0.1em;margin-bottom:6px;">💡 Did you know?</div>
+          <div id="trivia-loading-tips" style="font-size:14px;font-weight:700;color:#e2e8f0;font-family:'Boogaloo',cursive;transition:opacity 0.3s;min-height:22px;"></div>
+        </div>
+      </div>
+
+      <!-- QUESTION SCREEN -->
+      <div id="trivia-question-screen" class="hidden">
+        <!-- Top bar: streak + counter + timer -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+          <div id="trivia-streak-label" style="font-family:'Boogaloo',cursive;font-size:16px;color:#FF6B00;min-width:80px;"></div>
+          <div id="trivia-q-counter" style="font-family:'Orbitron',sans-serif;font-size:11px;font-weight:900;color:#475569;text-transform:uppercase;letter-spacing:0.1em;"></div>
+          <!-- SVG Timer Ring -->
+          <div style="position:relative;width:52px;height:52px;flex-shrink:0;">
+            <svg width="52" height="52" viewBox="0 0 52 52" style="transform:rotate(-90deg);">
+              <circle cx="26" cy="26" r="22" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="4"/>
+              <circle id="trivia-ring-fill" cx="26" cy="26" r="22" fill="none" stroke="#FFE500" stroke-width="4"
+                stroke-dasharray="138.2" stroke-dashoffset="0" stroke-linecap="round" style="transition:stroke-dashoffset 0.9s linear,stroke 0.3s;"/>
+            </svg>
+            <div id="trivia-timer-text" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Orbitron',sans-serif;font-size:14px;font-weight:900;color:#FFE500;"></div>
+          </div>
+        </div>
+
+        <!-- Motivational quote bar -->
+        <div id="trivia-motiv-bar" style="background:linear-gradient(90deg,rgba(255,107,0,0.12),rgba(255,45,120,0.08));border:1px solid rgba(255,107,0,0.25);border-radius:12px;padding:10px 16px;font-family:'Boogaloo',cursive;font-size:15px;color:#FF6B00;text-align:center;margin-bottom:12px;transition:opacity 0.3s;"></div>
+
+        <!-- Question card -->
+        <div id="trivia-question-card" class="trivia-wrap" style="padding:20px 18px;position:relative;overflow:hidden;">
+          <div id="trivia-category-pill" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;"></div>
+          <div id="trivia-question-text" style="font-family:'Boogaloo',cursive;font-size:20px;color:white;line-height:1.45;margin-bottom:20px;"></div>
+          <!-- Options -->
+          <div id="trivia-options" style="display:flex;flex-direction:column;gap:10px;"></div>
+          <!-- Explanation -->
+          <div id="trivia-explanation" class="hidden" style="margin-top:14px;background:rgba(0,245,255,0.07);border:1px solid rgba(0,245,255,0.2);border-radius:12px;padding:12px 14px;">
+            <div style="font-size:10px;font-weight:900;text-transform:uppercase;color:#00F5FF;letter-spacing:0.1em;margin-bottom:5px;">💡 Why?</div>
+            <div id="trivia-explanation-text" style="font-size:14px;font-weight:700;color:#e2e8f0;line-height:1.6;font-family:'Boogaloo',cursive;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RESULT SCREEN -->
+      <div id="trivia-result-screen" class="trivia-wrap hidden" style="padding:28px 20px;text-align:center;">
+        <div id="trivia-result-emoji" style="font-size:54px;margin-bottom:10px;"></div>
+        <div style="font-family:'Lilita One',cursive;font-size:13px;color:#64748b;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px;">Round Complete</div>
+        <div id="trivia-result-name" style="font-family:'Boogaloo',cursive;font-size:22px;color:white;margin-bottom:4px;"></div>
+        <div id="trivia-result-score" style="font-family:'Orbitron',sans-serif;font-size:36px;font-weight:900;background:linear-gradient(90deg,#FFE500,#FF6B00);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:6px;"></div>
+        <div id="trivia-result-msg" style="font-size:14px;font-weight:700;color:#94a3b8;margin-bottom:22px;font-family:'Boogaloo',cursive;"></div>
+        <!-- Breakdown -->
+        <div id="trivia-result-breakdown" style="display:flex;flex-direction:column;gap:8px;text-align:left;margin-bottom:22px;"></div>
+        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+          <button onclick="startTrivia(triviaState.playerName==='Anonymous')" style="background:linear-gradient(135deg,#FFE500,#FF6B00);border:none;border-radius:14px;padding:13px 24px;font-family:'Lilita One',cursive;font-size:15px;color:#000;cursor:pointer;box-shadow:0 4px 20px rgba(255,229,0,0.25);">🔁 Play Again</button>
+          <button onclick="resetTrivia()" style="background:rgba(255,255,255,0.05);border:2px solid rgba(255,255,255,0.1);border-radius:14px;padding:13px 20px;font-family:'Boogaloo',cursive;font-size:14px;color:#94a3b8;cursor:pointer;">🏠 Home</button>
+        </div>
+      </div>
+
     </div>
 
-  </div><!-- /main-container -->
-</div><!-- /main-app -->
+    <!-- WHO'S ONLINE VIEW (Nadia Super-Admin only) -->
+    <div id="online-view" class="hidden space-y-5 px-2 pb-24">
 
+      <!-- Header -->
+      <div class="glass p-5 rounded-3xl" style="border-top:4px solid #8b5cf6;">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+          <div>
+            <div style="font-family:'Orbitron',sans-serif;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.18em;color:#a78bfa;margin-bottom:4px;">🔐 Super Admin Monitor</div>
+            <div style="font-family:'Orbitron',sans-serif;font-size:20px;font-weight:900;color:white;text-transform:uppercase;">Who's Online</div>
+            <div style="font-size:11px;font-weight:700;color:#64748b;margin-top:3px;">Live session activity — visible only to Nadia</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;background:rgba(139,92,246,0.12);border:1px solid rgba(139,92,246,0.35);border-radius:12px;padding:6px 14px;">
+            <span style="width:8px;height:8px;border-radius:50%;background:#22c55e;box-shadow:0 0 6px #22c55e;display:inline-block;animation:pulse 1.5s infinite;"></span>
+            <span id="online-last-update" style="font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;color:#a78bfa;">Live</span>
+          </div>
+        </div>
+      </div>
 
-<!-- ── MORE FLOATING LAYERS ── -->
+      <!-- Summary pills -->
+      <div style="display:flex;gap:8px;">
+        <div class="online-stat-pill">
+          <div class="online-stat-num" style="color:#22c55e;" id="online-count-present">0</div>
+          <div class="online-stat-lbl">Online Now</div>
+        </div>
+        <div class="online-stat-pill">
+          <div class="online-stat-num" style="color:#f97316;" id="online-count-late">0</div>
+          <div class="online-stat-lbl">Late</div>
+        </div>
+        <div class="online-stat-pill">
+          <div class="online-stat-num" style="color:#475569;" id="online-count-total">0</div>
+          <div class="online-stat-lbl">Total Today</div>
+        </div>
+      </div>
 
-<!-- Top Performer popup + confetti canvas — Edit: html/top-performer-modal.html | js/leaderboard.js | css/modals.css -->
-<div id="part-top-performer"></div>
+      <!-- Nadia Admin Controls -->
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button onclick="renderOnlineView()" style="flex:1;min-width:120px;background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.35);border-radius:12px;padding:10px 14px;color:#a78bfa;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;font-family:'Orbitron',sans-serif;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:6px;" onmouseover="this.style.background='rgba(139,92,246,0.2)'" onmouseout="this.style.background='rgba(139,92,246,0.1)'">
+          🔄 Refresh
+        </button>
+        <button onclick="_nadiaExpandAll()" style="flex:1;min-width:120px;background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.3);border-radius:12px;padding:10px 14px;color:#60a5fa;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;font-family:'Orbitron',sans-serif;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:6px;" onmouseover="this.style.background='rgba(59,130,246,0.16)'" onmouseout="this.style.background='rgba(59,130,246,0.08)'">
+          📂 Expand All
+        </button>
+        <button onclick="_nadiaCollapseAll()" style="flex:1;min-width:120px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:10px 14px;color:#64748b;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;font-family:'Orbitron',sans-serif;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:6px;" onmouseover="this.style.background='rgba(255,255,255,0.07)'" onmouseout="this.style.background='rgba(255,255,255,0.03)'">
+          📁 Collapse All
+        </button>
+      </div>
 
-<!-- Admin broadcast float button + panel — Edit: html/broadcast-panel.html | js/broadcast.js | css/broadcast.css -->
-<div id="part-broadcast-panel"></div>
+      <!-- Legend -->
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:5px;font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.08em;color:#8b5cf6;"><span style="width:8px;height:8px;border-radius:2px;background:rgba(139,92,246,0.4);display:inline-block;"></span>TAB = page navigated to</div>
+        <div style="display:flex;align-items:center;gap:5px;font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.08em;color:#3b82f6;"><span style="width:8px;height:8px;border-radius:2px;background:rgba(59,130,246,0.4);display:inline-block;"></span>CLICK = button pressed</div>
+        <div style="display:flex;align-items:center;gap:5px;font-size:9px;font-weight:700;color:#475569;">⚡ = last known action</div>
+      </div>
 
-<!-- Broadcast admin login modal — Edit: html/bc-login-modal.html | js/broadcast.js | css/broadcast.css -->
-<div id="part-bc-login-modal"></div>
+      <!-- User cards list -->
+      <div id="online-users-list" style="display:flex;flex-direction:column;gap:10px;">
+        <div style="text-align:center;padding:40px 0;color:#475569;font-size:13px;font-weight:700;">
+          <div style="font-size:36px;margin-bottom:10px;">👁</div>
+          <div>Loading session data…</div>
+        </div>
+      </div>
 
-<!-- Password gate modal (Nadia/admin views) — Edit: html/pw-modal.html | js/nav.js | css/globals.css -->
-<div id="part-pw-modal"></div>
+    </div>
 
+</div>
 
-<!-- ═══════════════════════════════════════════════════════════
-     JAVASCRIPT — load order matters. firebase-config must be
-     first. loader.js is second and handles everything after.
-═══════════════════════════════════════════════════════════ -->
+    <!-- JS — Firebase init must be first -->
+    <script src="js/firebase-config.js"></script>
 
-<!-- STEP 1: Firebase init — sets up window.db used by all JS -->
-<!-- Edit: js/firebase-config.js -->
-<script src="js/firebase-config.js"></script>
+    <!-- Firebase listeners, session tracking, Jamal/Nadia monitors -->
+    <script src="js/firebase-bridge.js"></script>
 
-<!-- STEP 2: Loader — fetches html/ partials, then loads js/ modules in order -->
-<!-- Edit: js/loader.js (change HTML_PARTS or JS_MODULES arrays at the top) -->
-<script src="js/loader.js"></script>
+    <!-- Main dashboard: leaderboard, lookup, trivia, broadcast, lead alerts -->
+    <script src="js/dashboard.js"></script>
 
-<!--
-  After loader.js runs it will load these JS files in order:
-    js/firebase-bridge.js   ← realtime listeners, session, attendance
-    js/login.js             ← login screen
-    js/nav.js               ← tab switching + password gate
-    js/agent-banner.js      ← sticky agent info bar
-    js/broadcast.js         ← broadcast bar + admin panel
-    js/leaderboard.js       ← leaderboard + top performer popup
-    js/lookup.js            ← business lookup
-    js/playbook.js          ← industry drill accordions
-    js/rebuttals.js         ← rebuttal cards
-    js/prank.js             ← prank view
-    js/monthly.js           ← monthly overview
-    js/online.js            ← Nadia who's online view
-    js/trivia.js            ← trivia engine (always last)
--->
+    <!-- Login system, session persistence, agent banner, logout, online view -->
+    <script src="js/login.js"></script>
 
 </body>
 </html>
