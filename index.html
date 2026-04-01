@@ -14,12 +14,12 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
     <!-- CSS — edit each file independently -->
-    <link rel="stylesheet" href="css/globals.css">
-    <link rel="stylesheet" href="css/login.css">
-    <link rel="stylesheet" href="css/trivia.css">
-    <link rel="stylesheet" href="css/modals.css">
-    <link rel="stylesheet" href="css/broadcast.css">
-    <link rel="stylesheet" href="css/online.css">
+    <link rel="stylesheet" href="globals.css">
+    <link rel="stylesheet" href="login.css">
+    <link rel="stylesheet" href="trivia.css">
+    <link rel="stylesheet" href="modals.css">
+    <link rel="stylesheet" href="broadcast.css">
+    <link rel="stylesheet" href="online.css">
 </head>
 <body class="p-4 pb-20">
 
@@ -217,7 +217,7 @@
 </div>
 
 <!-- ===== ADMIN LOGIN MODAL FOR BROADCAST ===== -->
-<div id="bc-login-modal" class="hidden">
+<div id="bc-login-modal" style="display:none">
   <div class="modal-box">
     <div class="header-font text-xs text-red-500 tracking-widest uppercase mb-2 italic">📢 Admin Access</div>
     <div class="header-font text-2xl font-black text-white uppercase italic tracking-tight">Broadcast</div>
@@ -231,7 +231,7 @@
 
 <!-- ===== TOP PERFORMER POPUP ===== -->
 <canvas id="tp-confetti-canvas"></canvas>
-<div id="top-performer-modal" class="hidden">
+<div id="top-performer-modal" style="display:none">
   <div class="tp-box">
     <div class="tp-header">
       <span class="tp-crown">👑</span>
@@ -245,7 +245,7 @@
   </div>
 </div>
 
-<div id="pw-modal" class="modal-overlay hidden">
+<div id="pw-modal" class="modal-overlay" style="display:none">
     <div class="modal-box">
         <div class="header-font text-xs text-yellow-500 tracking-widest uppercase mb-2 italic">Access Required</div>
         <div class="header-font text-2xl font-black text-white uppercase italic tracking-tight">Weekly Rankings</div>
@@ -311,13 +311,13 @@
     <!-- Monthly Tabs Row — auto-generated based on current month -->
     <div id="monthly-tabs-row" style="display:none;gap:6px;flex-wrap:wrap;padding:0 8px;margin-bottom:8px;max-width:42rem;margin-left:auto;margin-right:auto;"></div>
 
-    <div id="day-sub-tabs-wrapper" class="hidden px-2 mb-5 max-w-2xl mx-auto">
+    <div id="day-sub-tabs-wrapper" class="px-2 mb-5 max-w-2xl mx-auto" style="display:none">
         <div id="day-sub-tabs-container"></div>
     </div>
 
     <!-- LEADERBOARD -->
     <div id="leaderboard-view">
-        <div id="history-banner" class="hidden mx-2 mb-4">
+        <div id="history-banner" class="mx-2 mb-4" style="display:none">
             <div class="history-banner"><i class="fas fa-history mr-2"></i><span id="history-banner-text"></span></div>
         </div>
         <div class="mb-10 px-2 max-w-3xl mx-auto">
@@ -369,7 +369,7 @@
     </div>
 
     <!-- LOOKUP -->
-    <div id="lookup-view" class="hidden px-2 pb-20 space-y-5">
+    <div id="lookup-view" class="px-2 pb-20 space-y-5" style="display:none">
         <div class="glass p-6 rounded-3xl border-t-4 border-t-blue-500">
             <div class="flex items-center gap-3 mb-3">
                 <div class="w-9 h-9 rounded-xl flex items-center justify-center" style="background:rgba(59,130,246,0.15);border:1px solid rgba(59,130,246,0.3);">
@@ -401,8 +401,8 @@
                 <div id="prank-log-status" style="display:none;border-radius:10px;padding:10px 14px;font-family:'Orbitron',sans-serif;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;text-align:center;"></div>
             </div>
         </div>
-        <div id="lookup-prank-result" class="hidden"></div>
-        <div id="lookup-history-section" class="hidden">
+        <div id="lookup-prank-result" style="display:none"></div>
+        <div id="lookup-history-section" style="display:none">
             <div class="flex justify-between items-center mb-3 px-1">
                 <span class="text-[10px] font-black text-slate-600 uppercase tracking-widest">Recent Lookups</span>
                 <button onclick="clearHistory()" class="text-[10px] font-black text-slate-700 hover:text-red-500 uppercase tracking-widest transition-colors">Clear All</button>
@@ -412,7 +412,7 @@
     </div>
 
     <!-- PLAYBOOK -->
-    <div id="playbook-view" class="hidden space-y-6 px-2 pb-20">
+    <div id="playbook-view" class="space-y-6 px-2 pb-20" style="display:none">
         <div class="glass p-6 rounded-3xl border-l-8 border-l-green-500 bg-green-500/5">
             <h3 class="header-font text-sm md:text-xl font-black text-green-500 uppercase mb-4 italic">Quality Guidelines</h3>
             <div class="text-sm md:text-lg leading-relaxed text-slate-200 space-y-3">
@@ -689,7 +689,7 @@
     </div>
 
     <!-- REBUTTALS TAB -->
-    <div id="rebuttals-view" class="hidden space-y-4 px-2 pb-20">
+    <div id="rebuttals-view" class="space-y-4 px-2 pb-20" style="display:none">
 
         <!-- Header -->
         <div style="border-radius:20px;overflow:hidden;border:2px solid rgba(20,184,166,0.4);box-shadow:0 0 30px rgba(20,184,166,0.1);">
@@ -1186,7 +1186,7 @@
     </div>
 
     <!-- PRANK TAB -->
-    <div id="prank-view" class="hidden space-y-5 px-2 pb-20">
+    <div id="prank-view" class="space-y-5 px-2 pb-20" style="display:none">
         <style>
             @media(min-width:768px){.prank-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}.prank-grid-1{display:grid;grid-template-columns:1fr;gap:16px;}}
             @media(max-width:767px){.prank-grid-2{display:flex;flex-direction:column;gap:14px;}.prank-grid-1{display:flex;flex-direction:column;gap:14px;}}
@@ -1316,7 +1316,7 @@
     </div>
 
     <!-- MONTHLY PERFORMANCE VIEW -->
-    <div id="monthly-view" class="hidden px-2 pb-20 space-y-5">
+    <div id="monthly-view" class="px-2 pb-20 space-y-5" style="display:none">
       <div class="glass p-6 rounded-3xl" style="border-top:4px solid #a78bfa;">
         <div style="font-family:'Orbitron',sans-serif;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:0.15em;color:#a78bfa;margin-bottom:4px;">📅 Monthly Overview</div>
         <div id="monthly-view-title" style="font-family:'Orbitron',sans-serif;font-size:20px;font-weight:900;color:white;text-transform:uppercase;margin-bottom:12px;">Month</div>
@@ -1329,7 +1329,7 @@
     </div>
 
     <!-- TRIVIA TAB -->
-    <div id="trivia-view" class="hidden space-y-4 px-2 pb-20">
+    <div id="trivia-view" class="space-y-4 px-2 pb-20" style="display:none">
 
       <!-- Header banner -->
       <div class="trivia-wrap" style="padding:0;">
@@ -1437,7 +1437,7 @@
     </div>
 
     <!-- WHO'S ONLINE VIEW (Nadia Super-Admin only) -->
-    <div id="online-view" class="hidden space-y-5 px-2 pb-24">
+    <div id="online-view" class="space-y-5 px-2 pb-24" style="display:none">
 
       <!-- Header -->
       <div class="glass p-5 rounded-3xl" style="border-top:4px solid #8b5cf6;">
@@ -1503,16 +1503,16 @@
 </div>
 
     <!-- JS — Firebase init must be first -->
-    <script src="js/firebase-config.js"></script>
+    <script src="firebase-config.js"></script>
 
     <!-- Firebase listeners, session tracking, Jamal/Nadia monitors -->
-    <script src="js/firebase-bridge.js"></script>
+    <script src="firebase-bridge.js"></script>
 
     <!-- Main dashboard: leaderboard, lookup, trivia, broadcast, lead alerts -->
-    <script src="js/dashboard.js"></script>
+    <script src="dashboard.js"></script>
 
     <!-- Login system, session persistence, agent banner, logout, online view -->
-    <script src="js/login.js"></script>
+    <script src="login.js"></script>
 
 </body>
 </html>
